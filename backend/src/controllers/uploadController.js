@@ -5,8 +5,10 @@ export const generatePresignedUrl = async (req, res, next) => {
   try {
     const { fileName, fileType, folder = 'images' } = req.body;
 
-    if (!fileName || !fileType) {
-      return errorResponse(res, 'fileName and fileType are required', 'BAD_REQUEST', 400);
+    if (typeof fileName !== 'string' || fileName.length > 180 || !/\.(png|jpe?g|webp)$/i.test(fileName) ||
+      !['image/png', 'image/jpeg', 'image/webp'].includes(fileType) ||
+      !['movies', 'events', 'venues'].includes(folder)) {
+      return errorResponse(res, 'Provide a supported image filename, image MIME type, and upload folder', 'BAD_REQUEST', 400);
     }
 
     const presignedData = await getPresignedUploadUrl(fileName, fileType, folder);

@@ -5,6 +5,8 @@ import { cancelBooking } from '../services/bookingService.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
 export const createBooking = async (req, res, next) => {
+  const reservedTicketItems = [];
+  let reservationEventId = null;
   try {
     const { bookingType, showId, eventId, seatIds, ticketItems } = req.body;
     const userId = req.user._id;
@@ -25,11 +27,15 @@ export const createBooking = async (req, res, next) => {
       if (!showId || !seatIds || !Array.isArray(seatIds) || seatIds.length === 0) {
         return errorResponse(res, 'Show ID and seat IDs are required for movie bookings', 'BAD_REQUEST', 400);
       }
+      if (seatIds.length > 10 || new Set(seatIds).size !== seatIds.length) {
+        return errorResponse(res, 'Select up to 10 unique seats per booking', 'INVALID_SEATS', 400);
+      }
 
       showObj = await Show.findById(showId).populate('movie venue');
       if (!showObj) {
         return errorResponse(res, 'Show not found', 'NOT_FOUND', 404);
       }
+      if (showObj.status !== 'ACTIVE') return errorResponse(res, 'Show is not available for booking', 'SHOW_INACTIVE', 409);
 
       venueId = showObj.venue._id;
       movieId = showObj.movie._id;
@@ -48,7 +54,7 @@ export const createBooking = async (req, res, next) => {
           seat.holdExpiresAt &&
           new Date(seat.holdExpiresAt) > now;
 
-        if (!isHeldByUser && seat.status !== 'AVAILABLE') {
+        if (!isHeldByUser) {
           return errorResponse(res, `Seat ${seatId} hold has expired or is unavailable`, 'HOLD_EXPIRED', 409);
         }
 
@@ -70,8 +76,16 @@ export const createBooking = async (req, res, next) => {
       if (!eventObj) {
         return errorResponse(res, 'Event not found', 'NOT_FOUND', 404);
       }
+      if (eventObj.status !== 'ACTIVE') return errorResponse(res, 'Event is not available for booking', 'EVENT_INACTIVE', 409);
+      if (new Set(ticketItems.map((item) => item.categoryName)).size !== ticketItems.length) {
+        return errorResponse(res, 'Ticket categories must be unique in a booking', 'DUPLICATE_TICKET_CATEGORY', 400);
+      }
+      if (ticketItems.some((item) => !Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1 || Number(item.quantity) > 10)) {
+        return errorResponse(res, 'Ticket quantity must be between 1 and 10 per category', 'INVALID_QUANTITY', 400);
+      }
 
       finalEventId = eventObj._id;
+      reservationEventId = eventObj._id;
       venueId = eventObj.venue._id;
 
       for (const item of ticketItems) {
@@ -86,7 +100,7 @@ export const createBooking = async (req, res, next) => {
         selectedTickets.push({
           categoryName: cat.name,
           price: cat.price,
-          quantity: item.quantity,
+          quantity: Number(item.quantity),
         });
       }
     }
@@ -100,6 +114,8 @@ export const createBooking = async (req, res, next) => {
         discount = Math.min(subtotal, 100);
       } else if (couponCode === 'MOVIE20') {
         discount = Math.min(100, Math.round(subtotal * 0.2));
+      } else {
+        return errorResponse(res, 'Invalid coupon code', 'INVALID_COUPON', 400);
       }
     }
 
@@ -107,6 +123,20 @@ export const createBooking = async (req, res, next) => {
     const taxableAmount = Math.max(0, subtotal - discount);
     const tax = Math.round(taxableAmount * 0.18); // 18% GST
     const totalAmount = Math.max(1, taxableAmount + convenienceFee + tax);
+
+    if (bookingType === 'EVENT') {
+      for (const item of selectedTickets) {
+        const result = await Event.updateOne(
+          { _id: finalEventId, ticketCategories: { $elemMatch: { name: item.categoryName, availableQuantity: { $gte: item.quantity } } } },
+          { $inc: { 'ticketCategories.$[category].availableQuantity': -item.quantity } },
+          { arrayFilters: [{ 'category.name': item.categoryName, 'category.availableQuantity': { $gte: item.quantity } }] }
+        );
+        if (result.modifiedCount !== 1) {
+          throw Object.assign(new Error(`Not enough tickets available for ${item.categoryName}`), { statusCode: 409, errorCode: 'INSUFFICIENT_TICKETS' });
+        }
+        reservedTicketItems.push(item);
+      }
+    }
 
     // Generate unique booking ID: MOV-2026-XXXXXX or EVT-2026-XXXXXX
     const prefix = bookingType === 'MOVIE' ? 'MOV' : 'EVT';
@@ -132,10 +162,18 @@ export const createBooking = async (req, res, next) => {
       totalAmount,
       paymentStatus: 'CREATED',
       bookingStatus: 'PENDING',
+      holdExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      inventoryReserved: bookingType === 'EVENT',
     });
 
     return successResponse(res, booking, 'Booking created successfully', 201);
   } catch (err) {
+    if (reservationEventId && reservedTicketItems.length) {
+      await Promise.all(reservedTicketItems.map((item) => Event.updateOne(
+        { _id: reservationEventId, 'ticketCategories.name': item.categoryName },
+        { $inc: { 'ticketCategories.$.availableQuantity': item.quantity } }
+      ))).catch((rollbackError) => console.error('Ticket reservation rollback failed:', rollbackError));
+    }
     next(err);
   }
 };
@@ -150,8 +188,15 @@ export const applyCouponToBooking = async (req, res, next) => {
       return errorResponse(res, 'Booking not found', 'NOT_FOUND', 404);
     }
 
-    if (booking.bookingStatus === 'CONFIRMED') {
-      return errorResponse(res, 'Booking is already confirmed', 'ALREADY_CONFIRMED', 400);
+    if (req.user.role !== 'admin' && booking.user.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized access to booking', 'FORBIDDEN', 403);
+    }
+
+    if (booking.bookingStatus !== 'PENDING' || (booking.holdExpiresAt && booking.holdExpiresAt <= new Date())) {
+      return errorResponse(res, 'Booking is no longer payable', 'BOOKING_UNAVAILABLE', 409);
+    }
+    if (booking.razorpayOrderId) {
+      return errorResponse(res, 'Coupon cannot be changed after a payment order has been created', 'PAYMENT_ALREADY_STARTED', 409);
     }
 
     const code = (couponCode || '').trim().toUpperCase();

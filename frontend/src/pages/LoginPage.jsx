@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Film, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function LoginPage() {
   const { login, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -113,7 +114,15 @@ export default function LoginPage() {
                 <span style={{ color: '#fff', fontSize: '0.88rem' }}>{error}</span>
               </div>
             )}
+            {location.state?.message && (
+              <div role="status" style={{ padding: '12px 16px', color: '#22c55e', backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '8px', marginBottom: '20px', fontSize: '0.88rem' }}>
+                {location.state.message}
+              </div>
+            )}
 
+            <div style={{ textAlign: 'right', marginTop: '-8px', marginBottom: '18px' }}>
+              <Link to="/forgot-password" style={{ color: 'var(--accent-cyan)', fontSize: '0.82rem' }}>Forgot password?</Link>
+            </div>
             <button
               type="submit"
               disabled={isSubmitting || loading}
@@ -122,13 +131,6 @@ export default function LoginPage() {
             >
               {isSubmitting ? 'Signing in...' : 'Sign In'}
             </button>
-
-            {/* Dev Credentials Hint */}
-            <div style={{ padding: '12px', backgroundColor: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.15)', borderRadius: '8px', marginBottom: '16px' }}>
-              <p style={{ color: 'var(--accent-cyan)', fontSize: '0.78rem', fontWeight: '600', marginBottom: '4px' }}>Dev Quick Login:</p>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Admin: <code>admin@cineverse.com</code> / <code>admin123</code></p>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>User: any email with password <code>user123</code></p>
-            </div>
 
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
               Don't have an account?{' '}

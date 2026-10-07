@@ -1,6 +1,7 @@
 import { Venue } from '../models/Venue.js';
 import { Screen } from '../models/Screen.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
+import { escapeRegex } from '../utils/search.js';
 
 export const getVenues = async (req, res, next) => {
   try {
@@ -8,7 +9,7 @@ export const getVenues = async (req, res, next) => {
     const query = { status: 'ACTIVE' };
 
     if (city) {
-      query.city = { $regex: new RegExp(`^${city}$`, 'i') };
+      query.city = { $regex: new RegExp(`^${escapeRegex(city)}$`, 'i') };
     }
 
     if (type) {
@@ -17,8 +18,8 @@ export const getVenues = async (req, res, next) => {
 
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { address: { $regex: search, $options: 'i' } },
+        { name: { $regex: escapeRegex(search), $options: 'i' } },
+        { address: { $regex: escapeRegex(search), $options: 'i' } },
       ];
     }
 

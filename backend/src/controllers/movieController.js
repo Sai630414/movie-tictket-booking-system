@@ -2,6 +2,7 @@ import { Movie } from '../models/Movie.js';
 import { Show } from '../models/Show.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 import slugify from 'slugify';
+import { escapeRegex } from '../utils/search.js';
 
 export const getMovies = async (req, res, next) => {
   try {
@@ -21,19 +22,19 @@ export const getMovies = async (req, res, next) => {
 
     if (search) {
       query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { cast: { $regex: search, $options: 'i' } },
+        { title: { $regex: escapeRegex(search), $options: 'i' } },
+        { description: { $regex: escapeRegex(search), $options: 'i' } },
+        { cast: { $regex: escapeRegex(search), $options: 'i' } },
       ];
     }
 
     if (language) {
-      query.language = { $regex: new RegExp(`^${language}$`, 'i') };
+      query.language = { $regex: new RegExp(`^${escapeRegex(language)}$`, 'i') };
     }
 
     if (genre) {
       const genresList = Array.isArray(genre) ? genre : genre.split(',');
-      query.genre = { $in: genresList.map((g) => new RegExp(g.trim(), 'i')) };
+      query.genre = { $in: genresList.map((g) => new RegExp(escapeRegex(g.trim()), 'i')) };
     }
 
     if (rating) {

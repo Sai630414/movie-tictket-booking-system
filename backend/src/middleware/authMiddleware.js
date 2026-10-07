@@ -14,27 +14,8 @@ export const requireAuth = async (req, res, next) => {
       return errorResponse(res, 'Authentication token missing', 'UNAUTHORIZED', 401);
     }
 
-    // Direct support for development/testing mock tokens
-    if (token.startsWith('mock_jwt_')) {
-      const mockRole = token.includes('admin') ? 'admin' : 'user';
-      const mockSubId = token.replace('mock_jwt_', '');
-      let dbUser = await User.findOne({
-        $or: [
-          { supabaseUserId: mockSubId },
-          { email: token.includes('admin') ? 'admin@cineverse.com' : `${mockSubId}@example.com` },
-        ],
-      });
-      if (!dbUser) {
-        dbUser = await User.create({
-          supabaseUserId: mockSubId,
-          email: token.includes('admin') ? 'admin@cineverse.com' : `${mockSubId}@example.com`,
-          name: mockRole === 'admin' ? 'System Admin' : mockSubId.toUpperCase(),
-          role: mockRole,
-        });
-      }
-      req.supabaseUser = { id: mockSubId, email: dbUser.email };
-      req.user = dbUser;
-      return next();
+    if (!supabaseAdmin) {
+      return errorResponse(res, 'Authentication service is not configured', 'AUTH_UNAVAILABLE', 503);
     }
 
     // Verify token via Supabase Auth API
@@ -53,7 +34,8 @@ export const requireAuth = async (req, res, next) => {
         email: supabaseUser.email,
         name: supabaseUser.user_metadata?.name || supabaseUser.user_metadata?.full_name || supabaseUser.email.split('@')[0],
         phone: supabaseUser.user_metadata?.phone || '',
-        role: supabaseUser.user_metadata?.role === 'admin' ? 'admin' : 'user',
+        // Roles are assigned only by trusted admin operations, never client metadata.
+        role: 'user',
       });
     }
 
@@ -83,20 +65,7 @@ export const optionalAuth = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
-      if (token && token.startsWith('mock_jwt_')) {
-        const mockSubId = token.replace('mock_jwt_', '');
-        const dbUser = await User.findOne({
-          $or: [
-            { supabaseUserId: mockSubId },
-            { email: token.includes('admin') ? 'admin@cineverse.com' : `${mockSubId}@example.com` },
-          ],
-        });
-        if (dbUser) {
-          req.supabaseUser = { id: mockSubId, email: dbUser.email };
-          req.user = dbUser;
-          return next();
-        }
-      }
+      if (!supabaseAdmin) return next();
       const { data: { user: supabaseUser } } = await supabaseAdmin.auth.getUser(token);
       if (supabaseUser) {
         const dbUser = await User.findOne({ supabaseUserId: supabaseUser.id });

@@ -23,16 +23,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        if (!supabase) return;
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         setSession(currentSession);
         if (currentSession) {
           await fetchProfile();
-        } else {
-          // Check local dev session
-          const devUserJson = localStorage.getItem('dev_user');
-          if (devUserJson) {
-            setUser(JSON.parse(devUserJson));
-          }
         }
       } catch (err) {
         console.error('Auth initialization error:', err);
@@ -43,55 +38,23 @@ export const AuthProvider = ({ children }) => {
 
     initAuth();
 
+    if (!supabase) return undefined;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession);
       if (newSession) {
         await fetchProfile();
-      } else {
-        const devUserJson = localStorage.getItem('dev_user');
-        if (!devUserJson) setUser(null);
-      }
+      } else setUser(null);
     });
 
     return () => subscription?.unsubscribe();
   }, []);
 
   const login = async (email, password) => {
+    if (!supabase) return { success: false, error: 'Authentication is not configured. Set the Supabase frontend environment variables.' };
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        // Fallback for dev mode
-        if (email === 'admin@cineverse.com' || password === 'admin123') {
-          const devAdmin = {
-            _id: 'admin_dev_id_123',
-            supabaseUserId: 'mock_jwt_admin',
-            email: 'admin@cineverse.com',
-            name: 'System Admin',
-            role: 'admin',
-            city: 'Mumbai',
-          };
-          localStorage.setItem('dev_auth_token', 'mock_jwt_admin');
-          localStorage.setItem('dev_user', JSON.stringify(devAdmin));
-          setUser(devAdmin);
-          return { success: true, user: devAdmin };
-        }
-        if (email.includes('user') || password === 'user123') {
-          const devUser = {
-            _id: 'user_dev_id_456',
-            supabaseUserId: 'mock_jwt_user',
-            email,
-            name: email.split('@')[0],
-            role: 'user',
-            city: 'Mumbai',
-          };
-          localStorage.setItem('dev_auth_token', 'mock_jwt_user');
-          localStorage.setItem('dev_user', JSON.stringify(devUser));
-          setUser(devUser);
-          return { success: true, user: devUser };
-        }
-        throw error;
-      }
+      if (error) throw error;
       await fetchProfile();
       return { success: true, data };
     } catch (err) {
@@ -102,6 +65,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (email, password, name, phone, city) => {
+    if (!supabase) return { success: false, error: 'Authentication is not configured. Set the Supabase frontend environment variables.' };
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -112,25 +76,10 @@ export const AuthProvider = ({ children }) => {
         },
       });
 
-      if (error) {
-        // Dev fallback
-        const devUser = {
-          _id: 'dev_user_' + Date.now(),
-          supabaseUserId: 'mock_jwt_reg_' + Date.now(),
-          email,
-          name,
-          phone,
-          city: city || 'Mumbai',
-          role: 'user',
-        };
-        localStorage.setItem('dev_auth_token', devUser.supabaseUserId);
-        localStorage.setItem('dev_user', JSON.stringify(devUser));
-        setUser(devUser);
-        return { success: true, user: devUser };
-      }
+      if (error) throw error;
 
-      await fetchProfile();
-      return { success: true, data };
+      if (data.session) await fetchProfile();
+      return { success: true, data, needsEmailVerification: !data.session };
     } catch (err) {
       return { success: false, error: err.message || 'Registration failed' };
     } finally {
@@ -140,12 +89,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      await supabase?.auth.signOut();
     } catch (err) {
       console.warn('Supabase logout error:', err);
     }
-    localStorage.removeItem('dev_auth_token');
-    localStorage.removeItem('dev_user');
     setUser(null);
     setSession(null);
   };

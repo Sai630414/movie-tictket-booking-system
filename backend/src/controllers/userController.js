@@ -14,12 +14,21 @@ export const updateProfile = async (req, res, next) => {
   try {
     const { name, phone, dateOfBirth, city, preferredLanguage, profileImage } = req.body;
 
+    if ((name !== undefined && (typeof name !== 'string' || !name.trim() || name.length > 100)) ||
+      (phone !== undefined && (typeof phone !== 'string' || phone.length > 30)) ||
+      (city !== undefined && (typeof city !== 'string' || !city.trim() || city.length > 100)) ||
+      (preferredLanguage !== undefined && (typeof preferredLanguage !== 'string' || preferredLanguage.length > 50)) ||
+      (dateOfBirth !== undefined && dateOfBirth !== null && Number.isNaN(Date.parse(dateOfBirth))) ||
+      (profileImage !== undefined && (typeof profileImage !== 'string' || profileImage.length > 2048 || !/^https?:\/\//i.test(profileImage)))) {
+      return errorResponse(res, 'One or more profile fields are invalid', 'VALIDATION_ERROR', 400);
+    }
+
     const user = await User.findById(req.user._id);
     if (!user) {
       return errorResponse(res, 'User not found', 'NOT_FOUND', 404);
     }
 
-    if (name !== undefined) user.name = name;
+    if (name !== undefined) user.name = name.trim();
     if (phone !== undefined) user.phone = phone;
     if (dateOfBirth !== undefined) user.dateOfBirth = dateOfBirth;
     if (city !== undefined) user.city = city;

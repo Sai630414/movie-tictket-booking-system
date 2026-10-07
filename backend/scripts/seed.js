@@ -3,7 +3,6 @@ import dotenv from 'dotenv';
 import slugify from 'slugify';
 dotenv.config();
 
-import { User } from '../src/models/User.js';
 import { Movie } from '../src/models/Movie.js';
 import { Event } from '../src/models/Event.js';
 import { Venue } from '../src/models/Venue.js';
@@ -18,46 +17,22 @@ const seedData = async () => {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected!');
 
-    // Clear existing data and stale indexes
-    try {
-      await mongoose.connection.dropDatabase();
-      console.log('Database dropped and fresh collections initialized.');
-    } catch (err) {
-      console.log('Clearing records via deleteMany fallback...');
-      await User.deleteMany({});
-      await Movie.deleteMany({});
-      await Event.deleteMany({});
-      await Venue.deleteMany({});
-      await Screen.deleteMany({});
-      await Show.deleteMany({});
+    const existingCatalog = await Promise.all([
+      Movie.countDocuments(), Event.countDocuments(), Venue.countDocuments(), Screen.countDocuments(), Show.countDocuments(),
+    ]);
+    if (existingCatalog.some(Boolean)) {
+      if (process.env.SEED_RESET !== 'true' || process.env.NODE_ENV === 'production') {
+        throw new Error('Seed stopped: catalog data already exists. Use an empty development database, or explicitly set SEED_RESET=true outside production.');
+      }
+      await Promise.all([Movie.deleteMany({}), Event.deleteMany({}), Venue.deleteMany({}), Screen.deleteMany({}), Show.deleteMany({})]);
+      console.log('Existing development catalog cleared (user and booking records were preserved).');
     }
 
     // Sync indexes
     await Movie.syncIndexes();
     await Event.syncIndexes();
 
-    // 1. Seed Users
-    const adminUser = await User.create({
-      supabaseUserId: 'admin-supabase-uid-123',
-      email: 'admin@cineverse.com',
-      name: 'System Admin',
-      phone: '+91 9876543210',
-      role: 'admin',
-      city: 'Mumbai',
-    });
-
-    const regularUser = await User.create({
-      supabaseUserId: 'user-supabase-uid-456',
-      email: 'alex@example.com',
-      name: 'Alex Johnson',
-      phone: '+91 9876543211',
-      role: 'user',
-      city: 'Mumbai',
-    });
-
-    console.log('Users seeded.');
-
-    // 2. Seed Movies
+    // Seed catalog fixtures only; no fabricated identities or privileged users.
     const moviesData = [
       {
         title: 'Cyberpulse: Neo Tokyo 2099',

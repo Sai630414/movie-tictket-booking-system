@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Lock, CreditCard, Shield, Ticket, AlertCircle, Tag, Timer, CheckCircle, Zap } from 'lucide-react';
+import { Lock, CreditCard, Shield, Ticket, AlertCircle, Tag, Timer, CheckCircle } from 'lucide-react';
 import api from '../services/api.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -27,7 +27,6 @@ export default function CheckoutPage() {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
-  const [paymentMode, setPaymentMode] = useState('razorpay'); // 'razorpay' or 'instant'
   const [couponCode, setCouponCode] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [couponSuccess, setCouponSuccess] = useState('');
@@ -113,27 +112,13 @@ export default function CheckoutPage() {
       }
 
       const { orderId, amount, currency, keyId } = orderRes.data.data;
-      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || keyId || 'rzp_test_dummykey123';
-
-      // Check if user chose instant demo simulation OR if Razorpay key is dummy / offline
-      const isMockMode = paymentMode === 'instant' || orderId.startsWith('order_mock_') || razorpayKey.includes('dummy');
-
-      if (isMockMode) {
-        // Fast instant verification simulation
-        const mockPaymentId = `pay_mock_${Date.now()}`;
-        const mockSignature = 'mock_signature';
-        await verifyAndConfirmPayment(booking._id, orderId, mockPaymentId, mockSignature);
-        return;
-      }
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || keyId;
+      if (!razorpayKey) throw new Error('Razorpay is not configured for this application.');
 
       // Step 2: Ensure Razorpay SDK is loaded
       const isLoaded = await loadRazorpayScript();
       if (!isLoaded || !window.Razorpay) {
-        // Fallback to simulation if Razorpay CDN is unreachable
-        console.warn('Razorpay SDK could not be loaded, using simulated payment');
-        const mockPaymentId = `pay_fallback_${Date.now()}`;
-        await verifyAndConfirmPayment(booking._id, orderId, mockPaymentId, 'mock_signature');
-        return;
+        throw new Error('Razorpay checkout could not be loaded. Check your connection and try again.');
       }
 
       // Step 3: Real Razorpay checkout modal
@@ -376,60 +361,13 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {/* Payment Method Selector */}
-        <div className="glass-card" style={{ marginBottom: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', color: '#fff', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CreditCard size={18} color="var(--accent-red)" /> Select Payment Mode
-          </h3>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {/* Razorpay Option */}
-            <label style={{
-              display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px',
-              backgroundColor: paymentMode === 'razorpay' ? 'rgba(229,9,20,0.1)' : 'var(--bg-card)',
-              border: `1px solid ${paymentMode === 'razorpay' ? 'var(--accent-red)' : 'var(--border-color)'}`,
-              borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s'
-            }}>
-              <input
-                type="radio"
-                name="payMode"
-                checked={paymentMode === 'razorpay'}
-                onChange={() => setPaymentMode('razorpay')}
-                style={{ accentColor: 'var(--accent-red)', width: '18px', height: '18px' }}
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ color: '#fff', fontWeight: '700', fontSize: '0.95rem' }}>
-                  Online Payment (UPI, Cards, NetBanking, Wallets)
-                </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '2px' }}>
-                  Secure checkout processed by Razorpay Payments
-                </div>
-              </div>
-            </label>
-
-            {/* Instant Demo Option */}
-            <label style={{
-              display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px',
-              backgroundColor: paymentMode === 'instant' ? 'rgba(0,229,255,0.1)' : 'var(--bg-card)',
-              border: `1px solid ${paymentMode === 'instant' ? 'var(--accent-cyan)' : 'var(--border-color)'}`,
-              borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s'
-            }}>
-              <input
-                type="radio"
-                name="payMode"
-                checked={paymentMode === 'instant'}
-                onChange={() => setPaymentMode('instant')}
-                style={{ accentColor: 'var(--accent-cyan)', width: '18px', height: '18px' }}
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ color: '#fff', fontWeight: '700', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Zap size={16} color="var(--accent-cyan)" /> Instant Test Simulator (Demo 1-Click Confirmation)
-                </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '2px' }}>
-                  Verify complete booking confirmation and digital QR ticket instantly
-                </div>
-              </div>
-            </label>
+        <div className="glass-card" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <CreditCard size={22} color="var(--accent-red)" />
+          <div>
+            <div style={{ color: '#fff', fontWeight: '700', fontSize: '0.95rem' }}>Online payment</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '3px' }}>
+              UPI, cards, net banking, and wallets, processed securely by Razorpay.
+            </div>
           </div>
         </div>
 

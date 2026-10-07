@@ -1,6 +1,7 @@
 import { Event } from '../models/Event.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 import slugify from 'slugify';
+import { escapeRegex } from '../utils/search.js';
 
 export const getEvents = async (req, res, next) => {
   try {
@@ -19,9 +20,9 @@ export const getEvents = async (req, res, next) => {
 
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { organizer: { $regex: search, $options: 'i' } },
+        { name: { $regex: escapeRegex(search), $options: 'i' } },
+        { description: { $regex: escapeRegex(search), $options: 'i' } },
+        { organizer: { $regex: escapeRegex(search), $options: 'i' } },
       ];
     }
 
@@ -30,7 +31,7 @@ export const getEvents = async (req, res, next) => {
     }
 
     if (city) {
-      query.city = { $regex: new RegExp(`^${city}$`, 'i') };
+      query.city = { $regex: new RegExp(`^${escapeRegex(city)}$`, 'i') };
     }
 
     if (date) {
@@ -93,7 +94,7 @@ export const getNearbyEvents = async (req, res, next) => {
     const { city = 'Mumbai' } = req.query;
     const events = await Event.find({
       status: 'ACTIVE',
-      city: { $regex: new RegExp(`^${city}$`, 'i') },
+      city: { $regex: new RegExp(`^${escapeRegex(city)}$`, 'i') },
     })
       .populate('venue')
       .sort({ date: 1 })

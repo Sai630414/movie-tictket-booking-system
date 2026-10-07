@@ -1,32 +1,35 @@
-import React from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { CityProvider } from './context/CityContext.jsx';
 
-import HomePage from './pages/HomePage.jsx';
-import MoviesPage from './pages/MoviesPage.jsx';
-import MovieDetailPage from './pages/MovieDetailPage.jsx';
-import EventsPage from './pages/EventsPage.jsx';
-import EventDetailPage from './pages/EventDetailPage.jsx';
-import VenuesPage from './pages/VenuesPage.jsx';
-import LoginPage from './pages/LoginPage.jsx';
-import RegisterPage from './pages/RegisterPage.jsx';
-import ProfilePage from './pages/ProfilePage.jsx';
-import BookingsPage from './pages/BookingsPage.jsx';
-import BookingDetailPage from './pages/BookingDetailPage.jsx';
-import CheckoutPage from './pages/CheckoutPage.jsx';
-import BookingSuccessPage from './pages/BookingSuccessPage.jsx';
-import SeatSelectionPage from './pages/SeatSelectionPage.jsx';
-import AdminDashboardPage from './pages/admin/AdminDashboardPage.jsx';
-import AdminMoviesPage from './pages/admin/AdminMoviesPage.jsx';
-import AdminEventsPage from './pages/admin/AdminEventsPage.jsx';
-import AdminVenuesPage from './pages/admin/AdminVenuesPage.jsx';
-import AdminShowsPage from './pages/admin/AdminShowsPage.jsx';
-import AdminBookingsPage from './pages/admin/AdminBookingsPage.jsx';
-import AdminUsersPage from './pages/admin/AdminUsersPage.jsx';
-import AdminLayout from './pages/admin/AdminLayout.jsx';
+import LoadingSpinner from './components/LoadingSpinner.jsx';
+
+const HomePage = lazy(() => import('./pages/HomePage.jsx'));
+const MoviesPage = lazy(() => import('./pages/MoviesPage.jsx'));
+const MovieDetailPage = lazy(() => import('./pages/MovieDetailPage.jsx'));
+const EventsPage = lazy(() => import('./pages/EventsPage.jsx'));
+const EventDetailPage = lazy(() => import('./pages/EventDetailPage.jsx'));
+const VenuesPage = lazy(() => import('./pages/VenuesPage.jsx'));
+const LoginPage = lazy(() => import('./pages/LoginPage.jsx'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage.jsx'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage.jsx'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage.jsx'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'));
+const BookingsPage = lazy(() => import('./pages/BookingsPage.jsx'));
+const BookingDetailPage = lazy(() => import('./pages/BookingDetailPage.jsx'));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage.jsx'));
+const BookingSuccessPage = lazy(() => import('./pages/BookingSuccessPage.jsx'));
+const SeatSelectionPage = lazy(() => import('./pages/SeatSelectionPage.jsx'));
+const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage.jsx'));
+const AdminMoviesPage = lazy(() => import('./pages/admin/AdminMoviesPage.jsx'));
+const AdminEventsPage = lazy(() => import('./pages/admin/AdminEventsPage.jsx'));
+const AdminVenuesPage = lazy(() => import('./pages/admin/AdminVenuesPage.jsx'));
+const AdminShowsPage = lazy(() => import('./pages/admin/AdminShowsPage.jsx'));
+const AdminBookingsPage = lazy(() => import('./pages/admin/AdminBookingsPage.jsx'));
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage.jsx'));
 
 function SiteLayout({ children }) {
   return (
@@ -43,6 +46,7 @@ export default function App() {
     <AuthProvider>
       <CityProvider>
         <BrowserRouter>
+          <Suspense fallback={<LoadingSpinner message="Loading page..." />}>
           <Routes>
             <Route path="/" element={<SiteLayout><HomePage /></SiteLayout>} />
             <Route path="/movies" element={<SiteLayout><MoviesPage /></SiteLayout>} />
@@ -52,6 +56,8 @@ export default function App() {
             <Route path="/venues" element={<SiteLayout><VenuesPage /></SiteLayout>} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/profile" element={<SiteLayout><ProfilePage /></SiteLayout>} />
             <Route path="/bookings" element={<SiteLayout><BookingsPage /></SiteLayout>} />
             <Route path="/bookings/:id" element={<SiteLayout><BookingDetailPage /></SiteLayout>} />
@@ -69,6 +75,7 @@ export default function App() {
 
             <Route path="*" element={<SiteLayout><div style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', color: 'var(--text-secondary)' }}><div><h2 style={{ color: '#fff', marginBottom: '8px' }}>Page not found</h2><p>The page you requested does not exist.</p></div></div></SiteLayout>} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </CityProvider>
     </AuthProvider>

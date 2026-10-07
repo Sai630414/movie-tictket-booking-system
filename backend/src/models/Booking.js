@@ -90,6 +90,8 @@ const bookingSchema = new mongoose.Schema(
       enum: ['PENDING', 'CONFIRMED', 'CANCELLED', 'EXPIRED', 'COMPLETED'],
       default: 'PENDING',
     },
+    holdExpiresAt: { type: Date, default: null, index: true },
+    inventoryReserved: { type: Boolean, default: false },
     razorpayOrderId: {
       type: String,
       default: '',
@@ -111,6 +113,7 @@ const bookingSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    optimisticConcurrency: true,
   }
 );
 

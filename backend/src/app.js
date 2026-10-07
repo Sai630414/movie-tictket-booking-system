@@ -13,9 +13,12 @@ app.use(helmet());
 
 // CORS configuration
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [frontendUrl]
+  : [frontendUrl, 'http://localhost:5173', 'http://127.0.0.1:5173'];
 app.use(
   cors({
-    origin: [frontendUrl, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -34,7 +37,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // Body Parser
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '2mb', verify: (req, res, buffer) => { req.rawBody = Buffer.from(buffer); } }));
 app.use(express.urlencoded({ extended: true }));
 
 // Health Check

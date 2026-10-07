@@ -1,10 +1,11 @@
-import { releaseExpiredHolds } from '../services/bookingService.js';
+import { releaseExpiredHolds, expirePendingBookings } from '../services/bookingService.js';
 
 export const startHoldCleanerJob = () => {
   // Run hold cleaner every 2 minutes
   setInterval(async () => {
     try {
       await releaseExpiredHolds();
+      await expirePendingBookings();
     } catch (err) {
       console.error('[Expired Hold Cleaner Error]:', err.message);
     }

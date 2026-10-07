@@ -5,6 +5,8 @@ import { Venue } from '../models/Venue.js';
 import { Booking } from '../models/Booking.js';
 import { Show } from '../models/Show.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
+import { cancelBooking } from '../services/bookingService.js';
+import { escapeRegex } from '../utils/search.js';
 
 export const getDashboardStats = async (req, res, next) => {
   try {
@@ -57,8 +59,8 @@ export const getAllUsers = async (req, res, next) => {
 
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
+        { name: { $regex: escapeRegex(search), $options: 'i' } },
+        { email: { $regex: escapeRegex(search), $options: 'i' } },
       ];
     }
     if (role) {
@@ -94,8 +96,8 @@ export const getAllBookings = async (req, res, next) => {
     if (paymentStatus) query.paymentStatus = paymentStatus;
     if (search) {
       query.$or = [
-        { bookingId: { $regex: search, $options: 'i' } },
-        { razorpayOrderId: { $regex: search, $options: 'i' } },
+        { bookingId: { $regex: escapeRegex(search), $options: 'i' } },
+        { razorpayOrderId: { $regex: escapeRegex(search), $options: 'i' } },
       ];
     }
 
@@ -170,11 +172,14 @@ export const updateBookingStatus = async (req, res, next) => {
       return errorResponse(res, 'Booking not found', 'NOT_FOUND', 404);
     }
 
-    if (bookingStatus) booking.bookingStatus = bookingStatus;
-    if (paymentStatus) booking.paymentStatus = paymentStatus;
-
-    await booking.save();
-    return successResponse(res, booking, 'Booking status updated successfully');
+    if (paymentStatus) {
+      return errorResponse(res, 'Payment status is controlled by verified payment and refund provider events', 'INVALID_TRANSITION', 409);
+    }
+    if (bookingStatus !== 'CANCELLED') {
+      return errorResponse(res, 'Admins can only cancel bookings here; confirmation requires verified payment', 'INVALID_TRANSITION', 409);
+    }
+    const cancelled = await cancelBooking(id, req.user._id, true);
+    return successResponse(res, cancelled, 'Booking cancelled successfully');
   } catch (err) {
     next(err);
   }

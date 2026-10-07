@@ -1,63 +1,53 @@
 import crypto from 'crypto';
-import { razorpayInstance } from '../config/razorpay.js';
+import { razorpayInstance, isRazorpayConfigured } from '../config/razorpay.js';
 import { Payment } from '../models/Payment.js';
+import { Booking } from '../models/Booking.js';
 import { confirmMovieBooking } from './bookingService.js';
 
 export const createRazorpayOrder = async (amountInINR, receiptId) => {
-  try {
-    const options = {
+  if (!isRazorpayConfigured) {
+    throw Object.assign(new Error('Razorpay is not configured'), { statusCode: 503, errorCode: 'PAYMENT_UNAVAILABLE' });
+  }
+  const options = {
       amount: Math.round(amountInINR * 100), // amount in paise
       currency: 'INR',
       receipt: receiptId,
       payment_capture: 1,
-    };
-
-    const order = await razorpayInstance.orders.create(options);
-    return order;
-  } catch (error) {
-    console.error('[Razorpay Order Creation Error]:', error);
-    // Return mock order if Razorpay test API keys are dummy in offline mode
-    return {
-      id: `order_mock_${Date.now()}`,
-      entity: 'order',
-      amount: Math.round(amountInINR * 100),
-      amount_paid: 0,
-      amount_due: Math.round(amountInINR * 100),
-      currency: 'INR',
-      receipt: receiptId,
-      status: 'created',
-      attempts: 0,
-      created_at: Math.floor(Date.now() / 1000),
-    };
-  }
+  };
+  return razorpayInstance.orders.create(options);
 };
 
 export const verifyPaymentSignature = (orderId, paymentId, signature) => {
-  const secret = process.env.RAZORPAY_KEY_SECRET || 'dummy_razorpay_secret_123';
-  
-  // For test/mock mode
-  if (orderId.startsWith('order_mock_') || signature === 'mock_signature') {
-    return true;
-  }
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!secret || !orderId || !paymentId || !signature) return false;
 
   const generatedSignature = crypto
     .createHmac('sha256', secret)
     .update(`${orderId}|${paymentId}`)
     .digest('hex');
 
-  return generatedSignature === signature;
+  const expected = Buffer.from(generatedSignature, 'hex');
+  const received = Buffer.from(signature, 'hex');
+  return expected.length === received.length && crypto.timingSafeEqual(expected, received);
 };
 
-export const processWebhookEvent = async (body, signature) => {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET || 'dummy_webhook_secret_123';
+export const fetchCapturedPayment = async (paymentId) => {
+  if (!isRazorpayConfigured) throw Object.assign(new Error('Razorpay is not configured'), { statusCode: 503 });
+  return razorpayInstance.payments.fetch(paymentId);
+};
 
-  if (signature !== 'mock_webhook_signature') {
+export const processWebhookEvent = async (body, signature, rawBody) => {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!secret || !signature) throw new Error('Razorpay webhook is not configured');
+  {
     const expectedSignature = crypto
       .createHmac('sha256', secret)
-      .update(JSON.stringify(body))
+      .update(rawBody || JSON.stringify(body))
       .digest('hex');
 
-    if (expectedSignature !== signature) {
+    const expected = Buffer.from(expectedSignature, 'hex');
+    const received = Buffer.from(signature, 'hex');
+    if (expected.length !== received.length || !crypto.timingSafeEqual(expected, received)) {
       throw new Error('Invalid webhook signature');
     }
   }
@@ -76,12 +66,16 @@ export const processWebhookEvent = async (body, signature) => {
       if (paymentRecord.status === 'CAPTURED') {
         return { message: 'Webhook event already processed' };
       }
+      if (Number(paymentEntity.amount) !== Math.round(paymentRecord.amount * 100) || paymentEntity.currency !== paymentRecord.currency) {
+        throw new Error('Captured payment amount does not match booking');
+      }
+      const linkedBooking = await Booking.findOne({ _id: paymentRecord.bookingId, razorpayOrderId: orderId, totalAmount: paymentRecord.amount, bookingStatus: 'PENDING' });
+      if (!linkedBooking) throw new Error('Payment order is no longer linked to a payable booking');
+      await confirmMovieBooking(paymentRecord.bookingId, orderId, paymentId, signature);
       paymentRecord.status = 'CAPTURED';
       paymentRecord.razorpayPaymentId = paymentId;
       paymentRecord.webhookEvents.push({ eventType: event, payload, receivedAt: new Date() });
       await paymentRecord.save();
-
-      await confirmMovieBooking(paymentRecord.bookingId, orderId, paymentId, signature);
     }
   }
 

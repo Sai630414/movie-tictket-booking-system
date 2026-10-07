@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({ name: '', email: '', password: '', phone: '', city: 'Mumbai' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -23,6 +24,10 @@ export default function RegisterPage() {
     try {
       const result = await register(email, password, name, phone, city);
       if (result?.success) {
+        if (result.needsEmailVerification) {
+          setSuccessMessage('Check your email for a verification link, then sign in to continue.');
+          return;
+        }
         navigate('/');
       } else {
         setError(result?.error || 'Registration failed. Please try again.');
@@ -119,6 +124,11 @@ export default function RegisterPage() {
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '12px 16px', backgroundColor: 'rgba(229,9,20,0.1)', border: '1px solid rgba(229,9,20,0.3)', borderRadius: '8px', marginBottom: '20px' }}>
                 <AlertCircle size={16} color="var(--accent-red)" />
                 <span style={{ color: '#fff', fontSize: '0.88rem' }}>{error}</span>
+              </div>
+            )}
+            {successMessage && (
+              <div role="status" style={{ padding: '12px 16px', color: '#22c55e', backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '8px', marginBottom: '20px', fontSize: '0.88rem' }}>
+                {successMessage}
               </div>
             )}
 

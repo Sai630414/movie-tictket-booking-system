@@ -2,18 +2,19 @@ import { S3Client } from '@aws-sdk/client-s3';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const accountId = process.env.R2_ACCOUNT_ID || 'dummy_account_id';
-const accessKeyId = process.env.R2_ACCESS_KEY_ID || 'dummy_access_key';
-const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || 'dummy_secret_key';
+const accountId = process.env.R2_ACCOUNT_ID;
+const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+export const isR2Configured = Boolean(accountId && accessKeyId && secretAccessKey && process.env.R2_BUCKET_NAME && process.env.R2_PUBLIC_URL);
 
-export const r2Client = new S3Client({
+export const r2Client = isR2Configured ? new S3Client({
   region: 'auto',
   endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
   credentials: {
     accessKeyId,
     secretAccessKey,
   },
-});
+}) : null;
 
-export const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'movie-ticket-assets';
-export const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-dummy.r2.dev';
+export const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+export const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
