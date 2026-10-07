@@ -1,0 +1,142 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Eye, EyeOff, Film, AlertCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.jsx';
+
+export default function LoginPage() {
+  const { login, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!formData.email || !formData.password) { setError('Please fill in all fields.'); return; }
+    setIsSubmitting(true);
+    try {
+      const result = await login(formData.email, formData.password);
+      if (result?.success) {
+        navigate('/');
+      } else {
+        setError(result?.error || 'Login failed. Check your credentials.');
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: 'var(--bg-primary)',
+      backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(229,9,20,0.15) 0%, transparent 70%)',
+      padding: '40px 20px'
+    }}>
+      <div style={{ width: '100%', maxWidth: '440px' }}>
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+            <div style={{ width: '46px', height: '46px', borderRadius: '10px', background: 'linear-gradient(135deg, var(--accent-red), #b20710)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(229,9,20,0.4)' }}>
+              <Film size={26} color="#fff" />
+            </div>
+            <span style={{ fontSize: '1.8rem', fontWeight: '800', color: '#fff' }}>
+              CINE<span style={{ color: 'var(--accent-red)' }}>VERSE</span>
+            </span>
+          </Link>
+        </div>
+
+        {/* Card */}
+        <div className="glass-card">
+          <h2 style={{ fontSize: '1.8rem', color: '#fff', textAlign: 'center', marginBottom: '8px' }}>Welcome back</h2>
+          <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginBottom: '32px', fontSize: '0.92rem' }}>
+            Sign in to access your tickets and bookings
+          </p>
+
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.88rem', fontWeight: '500' }}>Email Address</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(f => ({ ...f, email: e.target.value }))}
+                placeholder="you@example.com"
+                style={{
+                  width: '100%', padding: '13px 16px', backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)', borderRadius: '8px',
+                  color: '#fff', fontSize: '0.95rem', outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={e => e.target.style.borderColor = 'var(--accent-red)'}
+                onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
+              />
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <label style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', fontWeight: '500' }}>Password</label>
+                <Link to="/forgot-password" style={{ color: 'var(--accent-red)', fontSize: '0.82rem' }}>Forgot password?</Link>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => setFormData(f => ({ ...f, password: e.target.value }))}
+                  placeholder="Enter your password"
+                  style={{
+                    width: '100%', padding: '13px 48px 13px 16px', backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)', borderRadius: '8px',
+                    color: '#fff', fontSize: '0.95rem', outline: 'none'
+                  }}
+                  onFocus={e => e.target.style.borderColor = 'var(--accent-red)'}
+                  onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', color: 'var(--text-muted)' }}>
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div style={{
+                display: 'flex', gap: '10px', alignItems: 'center',
+                padding: '12px 16px', backgroundColor: 'rgba(229,9,20,0.1)',
+                border: '1px solid rgba(229,9,20,0.3)', borderRadius: '8px', marginBottom: '20px'
+              }}>
+                <AlertCircle size={16} color="var(--accent-red)" />
+                <span style={{ color: '#fff', fontSize: '0.88rem' }}>{error}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting || loading}
+              className="btn-primary"
+              style={{ width: '100%', padding: '14px', fontSize: '1rem', marginBottom: '20px' }}
+            >
+              {isSubmitting ? 'Signing in...' : 'Sign In'}
+            </button>
+
+            {/* Dev Credentials Hint */}
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.15)', borderRadius: '8px', marginBottom: '16px' }}>
+              <p style={{ color: 'var(--accent-cyan)', fontSize: '0.78rem', fontWeight: '600', marginBottom: '4px' }}>Dev Quick Login:</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Admin: <code>admin@cineverse.com</code> / <code>admin123</code></p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>User: any email with password <code>user123</code></p>
+            </div>
+
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+              Don't have an account?{' '}
+              <Link to="/register" style={{ color: 'var(--accent-red)', fontWeight: '600' }}>Create one</Link>
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
