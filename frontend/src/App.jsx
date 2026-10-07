@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
@@ -50,9 +50,9 @@ export default function App() {
           <Routes>
             <Route path="/" element={<SiteLayout><HomePage /></SiteLayout>} />
             <Route path="/movies" element={<SiteLayout><MoviesPage /></SiteLayout>} />
-            <Route path="/movie/:slug" element={<SiteLayout><MovieDetailPage /></SiteLayout>} />
+            <Route path="/movies/:slug" element={<SiteLayout><MovieDetailPage /></SiteLayout>} />
             <Route path="/events" element={<SiteLayout><EventsPage /></SiteLayout>} />
-            <Route path="/event/:slug" element={<SiteLayout><EventDetailPage /></SiteLayout>} />
+            <Route path="/events/:slug" element={<SiteLayout><EventDetailPage /></SiteLayout>} />
             <Route path="/venues" element={<SiteLayout><VenuesPage /></SiteLayout>} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -64,6 +64,7 @@ export default function App() {
             <Route path="/booking/checkout" element={<SiteLayout><CheckoutPage /></SiteLayout>} />
             <Route path="/booking/success" element={<SiteLayout><BookingSuccessPage /></SiteLayout>} />
             <Route path="/seat-selection/:showId" element={<SiteLayout><SeatSelectionPage /></SiteLayout>} />
+            <Route path="/shows/:showId/seats" element={<SiteLayout><SeatSelectionPage /></SiteLayout>} />
 
             <Route path="/admin" element={<AdminDashboardPage />} />
             <Route path="/admin/movies" element={<AdminMoviesPage />} />
