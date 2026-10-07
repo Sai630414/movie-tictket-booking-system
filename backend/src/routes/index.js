@@ -12,6 +12,7 @@ import uploadRoutes from './uploadRoutes.js';
 import recommendationRoutes from './recommendationRoutes.js';
 import notificationRoutes from './notificationRoutes.js';
 import adminRoutes from './adminRoutes.js';
+import ticketRoutes from './ticketRoutes.js';
 
 const router = express.Router();
 
@@ -28,5 +29,6 @@ router.use('/uploads', uploadRoutes);
 router.use('/recommendations', recommendationRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/admin', adminRoutes);
+router.use('/tickets', ticketRoutes);
 
 export default router;

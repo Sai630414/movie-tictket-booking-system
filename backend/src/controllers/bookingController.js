@@ -1,7 +1,7 @@
 import { Booking } from '../models/Booking.js';
 import { Show } from '../models/Show.js';
 import { Event } from '../models/Event.js';
-import { cancelBooking } from '../services/bookingService.js';
+import { cancelBooking, ensureSecureTicketQr } from '../services/bookingService.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
 export const createBooking = async (req, res, next) => {
@@ -262,7 +262,7 @@ export const getBookingById = async (req, res, next) => {
       query = { bookingId: id };
     }
 
-    const booking = await Booking.findOne(query).populate('movie event venue show user');
+    const booking = await Booking.findOne(query).select('+ticketToken').populate('movie event venue show user');
     if (!booking) {
       return errorResponse(res, 'Booking not found', 'NOT_FOUND', 404);
     }
@@ -270,6 +270,8 @@ export const getBookingById = async (req, res, next) => {
     if (req.user.role !== 'admin' && booking.user._id.toString() !== req.user._id.toString()) {
       return errorResponse(res, 'Unauthorized access to booking', 'FORBIDDEN', 403);
     }
+
+    await ensureSecureTicketQr(booking);
 
     return successResponse(res, booking, 'Booking details retrieved');
   } catch (err) {

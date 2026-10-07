@@ -4,7 +4,7 @@ import { Eye, EyeOff, Film, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function LoginPage() {
-  const { login, loading } = useAuth();
+  const { login, loginWithGoogle, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -21,7 +21,7 @@ export default function LoginPage() {
     try {
       const result = await login(formData.email, formData.password);
       if (result?.success) {
-        navigate('/');
+        navigate(location.state?.from || '/profile', { replace: true });
       } else {
         setError(result?.error || 'Login failed. Check your credentials.');
       }
@@ -30,6 +30,12 @@ export default function LoginPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    const result = await loginWithGoogle();
+    if (!result?.success) setError(result?.error || 'Google sign in failed. Please try again.');
   };
 
   return (
@@ -130,6 +136,10 @@ export default function LoginPage() {
               style={{ width: '100%', padding: '14px', fontSize: '1rem', marginBottom: '20px' }}
             >
               {isSubmitting ? 'Signing in...' : 'Sign In'}
+            </button>
+
+            <button type="button" onClick={handleGoogleSignIn} className="btn-outline" style={{ width: '100%', padding: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+              <span aria-hidden="true" style={{ fontWeight: '800', color: '#4285F4' }}>G</span> Continue with Google
             </button>
 
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>

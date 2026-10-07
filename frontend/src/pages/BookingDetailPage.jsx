@@ -3,16 +3,24 @@ import { useParams, Link } from 'react-router-dom';
 import { MapPin, Calendar, Clock, QrCode, CheckCircle, XCircle } from 'lucide-react';
 import api from '../services/api.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function BookingDetailPage() {
-  const { id } = useParams();
+  const { id, bookingId } = useParams();
+  const ticketId = id || bookingId;
+  const { user, loading: authLoading } = useAuth();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     const fetchBooking = async () => {
       try {
-        const res = await api.get(`/bookings/${id}`);
+        const res = await api.get(`/bookings/${ticketId}`);
         if (res.data?.success) setBooking(res.data.data);
       } catch (err) {
         console.error('Fetch booking detail error:', err);
@@ -21,9 +29,16 @@ export default function BookingDetailPage() {
       }
     };
     fetchBooking();
-  }, [id]);
+  }, [ticketId, user, authLoading]);
 
-  if (loading) return <LoadingSpinner message="Loading ticket..." />;
+  if (authLoading || loading) return <LoadingSpinner message="Loading ticket..." />;
+  if (!user) return (
+    <div style={{ textAlign: 'center', padding: '100px 20px', color: 'var(--text-secondary)' }}>
+      <h2 style={{ color: '#fff' }}>Sign in to view this ticket</h2>
+      <p style={{ marginTop: '8px' }}>Tickets are private to the account that made the booking.</p>
+      <Link to="/login" className="btn-primary" style={{ display: 'inline-flex', marginTop: '20px' }}>Sign In</Link>
+    </div>
+  );
   if (!booking) return (
     <div style={{ textAlign: 'center', padding: '100px 20px', color: 'var(--text-secondary)' }}>
       <h2>Ticket not found</h2>
@@ -37,7 +52,7 @@ export default function BookingDetailPage() {
     <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', padding: '40px 0' }}>
       <div className="container" style={{ maxWidth: '600px' }}>
         <Link to="/bookings" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '24px' }}>
-          ← Back to My Bookings
+          â† Back to My Bookings
         </Link>
 
         {/* Ticket Card */}
@@ -71,27 +86,32 @@ export default function BookingDetailPage() {
               {booking.venue && (
                 <div>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Venue</div>
-                  <div style={{ color: '#fff', fontSize: '0.9rem' }}>📍 {booking.venue?.name}</div>
+                  <div style={{ color: '#fff', fontSize: '0.9rem' }}>ðŸ“ {booking.venue?.name}</div>
                 </div>
               )}
               {(booking.show?.showDate || booking.event?.date) && (
                 <div>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Date</div>
                   <div style={{ color: '#fff', fontSize: '0.9rem' }}>
-                    📅 {new Date(booking.show?.showDate || booking.event?.date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
+                    ðŸ“… {new Date(booking.show?.showDate || booking.event?.date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
                   </div>
                 </div>
               )}
-              {booking.show?.startTime && (
+              {(booking.show?.startTime || booking.event?.startTime) && (
                 <div>
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Time</div>
-                  <div style={{ color: '#fff', fontSize: '0.9rem' }}>🕐 {booking.show.startTime}</div>
+                  <div style={{ color: '#fff', fontSize: '0.9rem' }}>ðŸ• {booking.show?.startTime || booking.event?.startTime}{(booking.show?.endTime || booking.event?.endTime) ? ` – ${booking.show?.endTime || booking.event?.endTime}` : ''}</div>
                 </div>
               )}
               <div>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Amount Paid</div>
-                <div style={{ color: 'var(--accent-gold)', fontWeight: '800', fontSize: '1.1rem' }}>₹{booking.totalAmount}</div>
+                <div style={{ color: 'var(--accent-gold)', fontWeight: '800', fontSize: '1.1rem' }}>â‚¹{booking.totalAmount}</div>
               </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              <div><div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Ticket status</div><div style={{ color: isConfirmed ? '#86efac' : '#fca5a5', fontWeight: '700' }}>{booking.ticketUsedAt ? 'USED' : booking.bookingStatus}</div></div>
+              <div><div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Payment status</div><div style={{ color: '#fff', fontWeight: '600' }}>{booking.paymentStatus}</div></div>
             </div>
 
             {/* Seats */}
@@ -117,8 +137,8 @@ export default function BookingDetailPage() {
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '8px' }}>Tickets</div>
                 {booking.ticketItems.map(item => (
                   <div key={item.categoryName} style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', marginBottom: '6px', fontSize: '0.9rem' }}>
-                    <span>{item.categoryName} × {item.quantity}</span>
-                    <span>₹{item.price * item.quantity}</span>
+                    <span>{item.categoryName} Ã— {item.quantity}</span>
+                    <span>â‚¹{item.price * item.quantity}</span>
                   </div>
                 ))}
               </div>
@@ -132,16 +152,18 @@ export default function BookingDetailPage() {
               <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Show this QR code at the venue entrance
               </p>
-              {booking.qrCode ? (
+              {booking.qrCode && isConfirmed && booking.paymentStatus === 'PAID' ? (
                 <img
                   src={booking.qrCode}
                   alt="Booking QR Code"
                   style={{ width: '180px', height: '180px', border: '8px solid #fff', borderRadius: '12px', backgroundColor: '#fff' }}
                 />
+              ) : booking.bookingStatus === 'CANCELLED' || booking.paymentStatus === 'REFUNDED' ? (
+                <p style={{ color: 'var(--accent-red)', fontSize: '0.88rem' }}>This ticket is no longer valid.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <QrCode size={80} color="var(--text-muted)" />
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Payment pending — QR code will appear after confirmation</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Payment pending â€” QR code will appear after confirmation</p>
                 </div>
               )}
               {/* Actions */}
@@ -151,7 +173,7 @@ export default function BookingDetailPage() {
                   className="btn-outline"
                   style={{ flex: 1, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.88rem' }}
                 >
-                  🖨️ Print Ticket
+                  ðŸ–¨ï¸ Print Ticket
                 </button>
                 {isConfirmed && (
                   <button

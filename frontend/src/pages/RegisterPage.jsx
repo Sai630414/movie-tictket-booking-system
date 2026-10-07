@@ -28,7 +28,7 @@ export default function RegisterPage() {
           setSuccessMessage('Check your email for a verification link, then sign in to continue.');
           return;
         }
-        navigate('/');
+        navigate('/profile', { replace: true });
       } else {
         setError(result?.error || 'Registration failed. Please try again.');
       }

@@ -3,10 +3,12 @@ import { Event } from '../models/Event.js';
 import { Booking } from '../models/Booking.js';
 import { Notification } from '../models/Notification.js';
 import { generateQRCode } from '../utils/qrGenerator.js';
+import crypto from 'crypto';
+import { sendBookingConfirmation, sendCancellationEmail } from './email/brevoEmailService.js';
 
 const HOLD_DURATION_MINUTES = 10;
 
-const getScheduledStart = (date, time = '') => {
+export const getScheduledStart = (date, time = '') => {
   const scheduled = new Date(date);
   const match = String(time).trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
   if (!Number.isNaN(scheduled.getTime()) && match) {
@@ -43,6 +45,36 @@ export const releaseExpiredHolds = async (showId = null) => {
       await show.save();
     }
   }
+};
+
+export const ensureSecureTicketQr = async (booking) => {
+  if (!booking || booking.bookingStatus !== 'CONFIRMED' || booking.paymentStatus !== 'PAID' || booking.ticketToken) return booking;
+
+  const ticketToken = crypto.randomBytes(32).toString('base64url');
+  const qrCode = await generateQRCode(`CINEVERSE-TICKET:${ticketToken}`);
+  const updated = await Booking.findOneAndUpdate(
+    {
+      _id: booking._id,
+      bookingStatus: 'CONFIRMED',
+      paymentStatus: 'PAID',
+      $or: [{ ticketToken: { $exists: false } }, { ticketToken: null }, { ticketToken: '' }],
+    },
+    { $set: { ticketToken, qrCode } },
+    { new: true }
+  ).select('+ticketToken');
+
+  if (updated) {
+    booking.ticketToken = updated.ticketToken;
+    booking.qrCode = updated.qrCode;
+    return booking;
+  }
+
+  const current = await Booking.findById(booking._id).select('+ticketToken');
+  if (current?.ticketToken) {
+    booking.ticketToken = current.ticketToken;
+    booking.qrCode = current.qrCode;
+  }
+  return booking;
 };
 
 export const expirePendingBookings = async () => {
@@ -144,7 +176,7 @@ export const holdMovieSeats = async (showId, seatIds, userId) => {
  * Confirm Booking after server-side payment verification
  */
 export const confirmMovieBooking = async (bookingId, razorpayOrderId, razorpayPaymentId, razorpaySignature) => {
-  const booking = await Booking.findById(bookingId).populate('show movie venue user');
+  const booking = await Booking.findById(bookingId).select('+ticketToken').populate('show movie venue user');
   if (!booking) {
     throw { statusCode: 404, message: 'Booking not found', errorCode: 'BOOKING_NOT_FOUND' };
   }
@@ -153,6 +185,8 @@ export const confirmMovieBooking = async (bookingId, razorpayOrderId, razorpayPa
     if (booking.razorpayOrderId !== razorpayOrderId || booking.razorpayPaymentId !== razorpayPaymentId) {
       throw { statusCode: 409, message: 'Payment does not match the confirmed booking', errorCode: 'PAYMENT_MISMATCH' };
     }
+    await ensureSecureTicketQr(booking);
+    await sendBookingConfirmationSafely(booking._id);
     return booking; // Idempotent return
   }
   if (booking.bookingStatus !== 'PENDING' || (booking.holdExpiresAt && booking.holdExpiresAt <= new Date())) {
@@ -194,13 +228,8 @@ export const confirmMovieBooking = async (bookingId, razorpayOrderId, razorpayPa
   }
 
   // Generate QR Code
-  const qrData = JSON.stringify({
-    bId: booking.bookingId,
-    uId: booking.user?._id || booking.user,
-    amt: booking.totalAmount,
-    time: booking.createdAt,
-  });
-  const qrCode = await generateQRCode(qrData);
+  const ticketToken = crypto.randomBytes(32).toString('base64url');
+  const qrCode = await generateQRCode(`CINEVERSE-TICKET:${ticketToken}`);
 
   booking.paymentStatus = 'PAID';
   booking.bookingStatus = 'CONFIRMED';
@@ -209,6 +238,7 @@ export const confirmMovieBooking = async (bookingId, razorpayOrderId, razorpayPa
   booking.razorpayPaymentId = razorpayPaymentId;
   booking.razorpaySignature = razorpaySignature;
   booking.qrCode = qrCode;
+  booking.ticketToken = ticketToken;
 
   await booking.save();
 
@@ -226,14 +256,24 @@ export const confirmMovieBooking = async (bookingId, razorpayOrderId, razorpayPa
     console.warn('Notification creation error:', notifErr.message);
   }
 
+  await sendBookingConfirmationSafely(booking._id);
+
   return booking;
+};
+
+const sendBookingConfirmationSafely = async (bookingId) => {
+  try {
+    await sendBookingConfirmation(bookingId);
+  } catch (err) {
+    console.error('[Booking confirmation email queue failed]', { bookingId: String(bookingId), reason: err.name || 'EMAIL_ERROR' });
+  }
 };
 
 /**
  * Cancel Booking validation (Must be > 6 hours before show/event time OR within 30 mins of booking)
  */
 export const cancelBooking = async (bookingId, userId, isAdmin = false) => {
-  const booking = await Booking.findById(bookingId).populate('show event venue');
+  const booking = await Booking.findById(bookingId).populate('show event venue movie user');
   if (!booking) {
     throw { statusCode: 404, message: 'Booking not found', errorCode: 'BOOKING_NOT_FOUND' };
   }
@@ -320,6 +360,12 @@ export const cancelBooking = async (bookingId, userId, isAdmin = false) => {
     });
   } catch (notifErr) {
     console.warn('Cancellation notification error:', notifErr.message);
+  }
+
+  try {
+    await sendCancellationEmail(booking._id);
+  } catch (err) {
+    console.error('[Booking cancellation email queue failed]', { bookingId: String(booking._id), reason: err.name || 'EMAIL_ERROR' });
   }
 
   return booking;

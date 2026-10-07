@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase.js';
 import api from '../services/api.js';
 
@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const res = await api.get('/auth/me');
       if (res.data?.success) {
@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.warn('Could not sync user profile from API server:', err.message);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => subscription?.unsubscribe();
-  }, []);
+  }, [fetchProfile]);
 
   const login = async (email, password) => {
     if (!supabase) return { success: false, error: 'Authentication is not configured. Set the Supabase frontend environment variables.' };
@@ -73,6 +73,7 @@ export const AuthProvider = ({ children }) => {
         password,
         options: {
           data: { name, phone, city, role: 'user' },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -84,6 +85,20 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: err.message || 'Registration failed' };
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    if (!supabase) return { success: false, error: 'Authentication is not configured. Set the Supabase frontend environment variables.' };
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message || 'Google sign in failed.' };
     }
   };
 
@@ -109,6 +124,8 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         register,
+        loginWithGoogle,
+        refreshProfile: fetchProfile,
         logout,
         updateProfileState,
         isAdmin: user?.role === 'admin',

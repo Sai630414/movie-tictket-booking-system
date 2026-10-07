@@ -103,6 +103,8 @@ export default function CheckoutPage() {
   const handlePayment = async () => {
     setError('');
     setPaying(true);
+    let paymentHandled = false;
+    let activeOrderId = '';
 
     try {
       // Step 1: Create Razorpay Order on Backend
@@ -112,6 +114,7 @@ export default function CheckoutPage() {
       }
 
       const { orderId, amount, currency, keyId } = orderRes.data.data;
+      activeOrderId = orderId;
       const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || keyId;
       if (!razorpayKey) throw new Error('Razorpay is not configured for this application.');
 
@@ -136,6 +139,7 @@ export default function CheckoutPage() {
         },
         theme: { color: '#E50914' },
         handler: async (response) => {
+          paymentHandled = true;
           await verifyAndConfirmPayment(
             booking._id,
             response.razorpay_order_id,
@@ -144,7 +148,10 @@ export default function CheckoutPage() {
           );
         },
         modal: {
-          ondismiss: () => {
+          ondismiss: async () => {
+            if (!paymentHandled && activeOrderId) {
+              await api.post('/payments/failure', { bookingId: booking._id, razorpayOrderId: activeOrderId }).catch(() => {});
+            }
             setError('Payment was dismissed. You can try again before your seats expire.');
             setPaying(false);
           },
@@ -153,6 +160,10 @@ export default function CheckoutPage() {
 
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response) {
+        paymentHandled = true;
+        if (activeOrderId) {
+          api.post('/payments/failure', { bookingId: booking._id, razorpayOrderId: activeOrderId }).catch(() => {});
+        }
         setError(response.error.description || 'Payment transaction failed.');
         setPaying(false);
       });

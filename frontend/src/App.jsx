@@ -17,6 +17,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage.jsx'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage.jsx'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage.jsx'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage.jsx'));
+const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage.jsx'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'));
 const BookingsPage = lazy(() => import('./pages/BookingsPage.jsx'));
 const BookingDetailPage = lazy(() => import('./pages/BookingDetailPage.jsx'));
@@ -58,9 +59,11 @@ export default function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/profile" element={<SiteLayout><ProfilePage /></SiteLayout>} />
             <Route path="/bookings" element={<SiteLayout><BookingsPage /></SiteLayout>} />
             <Route path="/bookings/:id" element={<SiteLayout><BookingDetailPage /></SiteLayout>} />
+            <Route path="/ticket/:bookingId" element={<SiteLayout><BookingDetailPage /></SiteLayout>} />
             <Route path="/booking/checkout" element={<SiteLayout><CheckoutPage /></SiteLayout>} />
             <Route path="/booking/success" element={<SiteLayout><BookingSuccessPage /></SiteLayout>} />
             <Route path="/seat-selection/:showId" element={<SiteLayout><SeatSelectionPage /></SiteLayout>} />
