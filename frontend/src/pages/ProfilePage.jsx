@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../services/api.js';
 import { CITIES } from '../context/CityContext.jsx';
@@ -20,6 +20,17 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!user) return;
+    setFormData({
+      name: user.name || '',
+      phone: user.phone || '',
+      dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
+      city: user.city || 'Vijayawada',
+      preferredLanguage: user.preferredLanguage || 'English',
+    });
+  }, [user?.name, user?.phone, user?.dateOfBirth, user?.city, user?.preferredLanguage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

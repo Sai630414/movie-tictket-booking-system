@@ -10,6 +10,31 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
+    // Show the identity returned by Supabase immediately. The API profile is
+    // preferred below, but OAuth callback/profile pages should still render if
+    // the API is temporarily unavailable.
+    try {
+      const { data: { user: authUser }, error } = supabase
+        ? await supabase.auth.getUser()
+        : { data: { user: null }, error: null };
+      if (!error && authUser) {
+        const metadata = authUser.user_metadata || {};
+        setUser(previous => ({
+          ...previous,
+          supabaseUserId: authUser.id,
+          email: authUser.email || previous?.email || '',
+          name: metadata.name || metadata.full_name || metadata.display_name || previous?.name || '',
+          phone: authUser.phone || previous?.phone || '',
+          profileImage: metadata.avatar_url || metadata.picture || previous?.profileImage || '',
+          city: metadata.city || previous?.city || 'Vijayawada',
+          preferredLanguage: previous?.preferredLanguage || 'English',
+          role: previous?.role || 'user',
+        }));
+      }
+    } catch (err) {
+      console.warn('Could not read the Supabase user profile:', err.message);
+    }
+
     try {
       const res = await api.get('/auth/me');
       if (res.data?.success) {

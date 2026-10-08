@@ -35,7 +35,7 @@ export const requireAuth = async (req, res, next) => {
       ...(supabaseUser.phone ? { phone: supabaseUser.phone } : {}),
       ...((metadata.name || metadata.full_name) ? { name: metadata.name || metadata.full_name } : {}),
       ...(metadata.city ? { city: metadata.city } : {}),
-      ...(metadata.avatar_url ? { profileImage: metadata.avatar_url } : {}),
+      ...((metadata.avatar_url || metadata.picture) ? { profileImage: metadata.avatar_url || metadata.picture } : {}),
     };
     const dbUser = await User.findOneAndUpdate(
       { supabaseUserId: supabaseUser.id },
