@@ -44,7 +44,6 @@ export const requireAuth = async (req, res, next) => {
         $setOnInsert: {
           supabaseUserId: supabaseUser.id,
           role: 'user',
-          city: 'Vijayawada',
           preferredLanguage: 'Telugu',
         },
       },
@@ -55,8 +54,11 @@ export const requireAuth = async (req, res, next) => {
     req.user = dbUser;
     next();
   } catch (err) {
-    console.error('[Auth Middleware Error]:', err);
-    return errorResponse(res, 'Authentication verification failed', 'AUTH_ERROR', 401);
+    console.error('[Auth Middleware Error]:', err?.code || err?.name || 'UnknownError', err?.message || 'No error message');
+    if (err?.code === 11000 && err?.keyPattern?.email) {
+      return errorResponse(res, 'A CineVerse profile already exists for this email. Sign in using the account originally linked to this email.', 'AUTH_PROFILE_CONFLICT', 409);
+    }
+    return errorResponse(res, 'We could not sync your account profile. Please try again shortly.', 'AUTH_PROFILE_SYNC_FAILED', 503);
   }
 };
 
