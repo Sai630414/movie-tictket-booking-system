@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getMovies,
+  getAvailableMovies,
   getTrendingMovies,
   getPopularMovies,
   getTopRatedMovies,
@@ -18,6 +19,7 @@ import { createMovieSchema, updateMovieSchema } from '../validators/movieValidat
 const router = express.Router();
 
 router.get('/', getMovies);
+router.get('/available', getAvailableMovies);
 router.get('/trending', getTrendingMovies);
 router.get('/popular', getPopularMovies);
 router.get('/top-rated', getTopRatedMovies);

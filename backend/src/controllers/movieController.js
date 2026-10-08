@@ -5,6 +5,55 @@ import slugify from 'slugify';
 import { escapeRegex } from '../utils/search.js';
 import { Venue } from '../models/Venue.js';
 
+const getShowStartDate = (show) => {
+  const date = new Date(show.showDate);
+  const match = String(show.startTime || '').trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!match) return date;
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (match[3]) {
+    if (hours === 12) hours = 0;
+    if (match[3].toUpperCase() === 'PM') hours += 12;
+  }
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), hours, minutes));
+};
+
+export const getAvailableMovies = async (req, res, next) => {
+  try {
+    const city = String(req.query.city || '').trim();
+    if (!city) return errorResponse(res, 'City is required', 'CITY_REQUIRED', 400);
+
+    const now = new Date();
+    const venues = await Venue.find({
+      status: 'ACTIVE', active: true, type: 'CINEMA',
+      city: { $regex: new RegExp(`^${escapeRegex(city)}$`, 'i') },
+    }).select('_id name city');
+    const venueById = new Map(venues.map((venue) => [String(venue._id), venue]));
+    if (!venues.length) return successResponse(res, { movies: [] }, 'Available movies retrieved');
+
+    const shows = await Show.find({ status: 'ACTIVE', venue: { $in: venues.map((venue) => venue._id) }, showDate: { $gte: new Date(now.toISOString().slice(0, 10)) } })
+      .populate({ path: 'movie', match: { status: 'ACTIVE' }, select: 'title slug poster language genre rating formats releaseDate releaseType status' })
+      .sort({ showDate: 1 });
+    const availableShows = shows.filter((show) => show.movie && getShowStartDate(show) > now &&
+      show.seatStatus?.some((seat) => seat.status === 'AVAILABLE' || (seat.status === 'HELD' && seat.holdExpiresAt && seat.holdExpiresAt <= now)));
+
+    const moviesById = new Map();
+    for (const show of availableShows) {
+      const movieId = String(show.movie._id);
+      const venue = venueById.get(String(show.venue));
+      if (!venue) continue;
+      if (!moviesById.has(movieId)) moviesById.set(movieId, { ...show.movie.toObject(), city, venues: [] });
+      const movie = moviesById.get(movieId);
+      let movieVenue = movie.venues.find((item) => String(item.id) === String(venue._id));
+      if (!movieVenue) {
+        movieVenue = { id: venue._id, name: venue.name, nextShow: show.startTime };
+        movie.venues.push(movieVenue);
+      }
+    }
+    return successResponse(res, { movies: [...moviesById.values()] }, 'Available movies retrieved');
+  } catch (err) { next(err); }
+};
+
 export const getMovies = async (req, res, next) => {
   try {
     const {
@@ -135,23 +184,27 @@ export const getComingSoonMovies = async (req, res, next) => {
 export const getMovieBySlug = async (req, res, next) => {
   try {
     const { slug } = req.params;
-    const movie = await Movie.findOne({ slug });
+    const movie = await Movie.findOne({ slug, status: 'ACTIVE' });
 
     if (!movie) {
       return errorResponse(res, 'Movie not found', 'NOT_FOUND', 404);
     }
 
     // Retrieve active shows for this movie
-    const showQuery = { movie: movie._id, status: 'ACTIVE', showDate: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } };
+    const now = new Date();
+    const showQuery = { movie: movie._id, status: 'ACTIVE', showDate: { $gte: new Date(now.toISOString().slice(0, 10)) } };
     if (req.query.city) {
       const venues = await Venue.find({ status: 'ACTIVE', city: { $regex: new RegExp(`^${escapeRegex(req.query.city)}$`, 'i') } }).select('_id');
       showQuery.venue = { $in: venues.map((venue) => venue._id) };
     }
     const shows = await Show.find(showQuery)
-      .populate('venue screen')
+      .populate({ path: 'venue', match: { status: 'ACTIVE', active: true, type: 'CINEMA' } })
+      .populate('screen')
       .sort({ showDate: 1, startTime: 1 });
+    const bookableShows = shows.filter((show) => show.venue && getShowStartDate(show) > now &&
+      show.seatStatus?.some((seat) => seat.status === 'AVAILABLE' || (seat.status === 'HELD' && seat.holdExpiresAt && seat.holdExpiresAt <= now)));
 
-    return successResponse(res, { movie, shows }, 'Movie details retrieved');
+    return successResponse(res, { movie, shows: bookableShows }, 'Movie details retrieved');
   } catch (err) {
     next(err);
   }
