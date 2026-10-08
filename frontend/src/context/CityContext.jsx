@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState } from 'react';
 const CityContext = createContext();
 
 export const CITIES = [
-  'Vijayawada', 'Amaravati', 'Visakhapatnam', 'Guntur', 'Tirupati', 'Nellore', 'Kadapa', 'Kurnool',
+  'Vijayawada', 'Visakhapatnam', 'Guntur', 'Tirupati', 'Nellore', 'Kadapa', 'Kurnool',
   'Rajahmundry', 'Kakinada', 'Anantapur', 'Eluru', 'Ongole', 'Machilipatnam',
   'Srikakulam', 'Vizianagaram', 'Bhimavaram',
 ];
