@@ -23,6 +23,11 @@ export const createOrder = async (req, res, next) => {
       const priorPayment = await Payment.findOne({ razorpayOrderId: booking.razorpayOrderId, bookingId: booking._id, user: req.user._id });
       if (priorPayment?.status === 'CREATED') {
         const priorOrder = await fetchRazorpayOrder(booking.razorpayOrderId);
+        // Provider responses are external input; validate before reading fields.
+        // If Razorpay did not return an order, don't create a second order blindly.
+        if (!priorOrder || typeof priorOrder !== 'object' || !priorOrder.id || !priorOrder.status) {
+          return errorResponse(res, 'Could not confirm the existing Razorpay order. Please retry in a moment.', 'PAYMENT_PROVIDER_UNAVAILABLE', 502);
+        }
         if (priorOrder.status === 'created' && Number(priorOrder.amount) === Math.round(booking.totalAmount * 100)) {
           return successResponse(res, {
             orderId: priorOrder.id,
@@ -96,7 +101,8 @@ export const verifyPayment = async (req, res, next) => {
     }
 
     const providerPayment = await fetchCapturedPayment(razorpayPaymentId);
-    if (providerPayment.order_id !== razorpayOrderId || providerPayment.status !== 'captured' ||
+    if (!providerPayment || typeof providerPayment !== 'object' ||
+      providerPayment.order_id !== razorpayOrderId || providerPayment.status !== 'captured' ||
       Number(providerPayment.amount) !== Math.round(booking.totalAmount * 100) || providerPayment.currency !== 'INR') {
       return errorResponse(res, 'Payment is not captured for the expected amount', 'PAYMENT_NOT_CAPTURED', 400);
     }
@@ -145,6 +151,9 @@ export const recordPaymentFailure = async (req, res, next) => {
       return errorResponse(res, 'Captured payment cannot be marked as failed', 'INVALID_TRANSITION', 409);
     }
     const providerOrder = await fetchRazorpayOrder(razorpayOrderId);
+    if (!providerOrder || typeof providerOrder !== 'object' || !providerOrder.status) {
+      return errorResponse(res, 'Could not confirm the Razorpay order status. Please retry in a moment.', 'PAYMENT_PROVIDER_UNAVAILABLE', 502);
+    }
     if (providerOrder.status === 'paid' || Number(providerOrder.amount_paid || 0) > 0) {
       return errorResponse(res, 'Razorpay reports a payment attempt for this order; server verification is required', 'PAYMENT_REVIEW_REQUIRED', 409);
     }

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Play, Ticket, Clock, ShieldAlert } from 'lucide-react';
+import TrailerModal from './TrailerModal.jsx';
 
 export default function HeroBanner({ movies = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   useEffect(() => {
     if (movies.length <= 1) return;
@@ -127,16 +129,15 @@ export default function HeroBanner({ movies = [] }) {
               <Ticket size={20} /> Book Tickets
             </Link>
 
-            {current.trailerUrl && (
-              <a
-                href={current.trailerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+            {(current.trailerUrl || current.trailer?.url || current.trailer?.videoId) && (
+              <button
+                type="button"
+                onClick={() => setShowTrailer(true)}
                 className="btn-secondary"
-                style={{ padding: '14px 24px', fontSize: '1rem' }}
+                style={{ padding: '14px 24px', fontSize: '1rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
               >
                 <Play size={18} fill="#ffffff" /> Watch Trailer
-              </a>
+              </button>
             )}
           </div>
 
@@ -155,7 +156,7 @@ export default function HeroBanner({ movies = [] }) {
         }}>
           {movies.map((m, idx) => (
             <div
-              key={m._id || idx}
+              key={`${m._id || 'movie'}-${idx}`}
               onClick={() => setCurrentIndex(idx)}
               style={{
                 width: idx === currentIndex ? '30px' : '10px',
@@ -169,6 +170,7 @@ export default function HeroBanner({ movies = [] }) {
           ))}
         </div>
       )}
+      {showTrailer && <TrailerModal movie={current} onClose={() => setShowTrailer(false)} />}
     </div>
   );
 }

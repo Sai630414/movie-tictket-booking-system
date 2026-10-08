@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, MapPin, Tag } from 'lucide-react';
+import { Calendar, MapPin, Ticket } from 'lucide-react';
 
 export default function EventCard({ event }) {
   if (!event) return null;
@@ -108,11 +108,14 @@ export default function EventCard({ event }) {
             >
               {event.name}
             </h3>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: 'var(--accent-cyan)', fontSize: '0.78rem', fontWeight: 700, marginBottom: '8px' }}>
+              <Ticket size={14} /> Book Now
+            </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
               <MapPin size={14} color="var(--accent-red)" />
               <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {event.venue?.name || event.city}
+                {[event.venue?.name, event.city].filter(Boolean).join(' · ') || event.location || 'Location to be announced'}
               </span>
             </div>
           </div>

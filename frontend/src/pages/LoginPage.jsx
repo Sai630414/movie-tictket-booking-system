@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Film, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import PhoneAuthPanel from '../components/PhoneAuthPanel.jsx';
 
 export default function LoginPage() {
   const { login, loginWithGoogle, loading } = useAuth();
@@ -12,6 +13,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Make the OTP sign-in flow immediately visible; email/password remains available.
+  const [loginMode, setLoginMode] = useState('phone');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,7 +68,15 @@ export default function LoginPage() {
             Sign in to access your tickets and bookings
           </p>
 
-          <form onSubmit={handleSubmit}>
+          <div role="tablist" aria-label="Sign in method" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', padding: '5px', borderRadius: '10px', background: 'var(--bg-secondary)', marginBottom: '22px' }}>
+            {[['email', 'Email'], ['phone', 'Phone OTP']].map(([mode, label]) => (
+              <button key={mode} type="button" role="tab" aria-selected={loginMode === mode} onClick={() => { setLoginMode(mode); setError(''); }} style={{ padding: '9px', borderRadius: '7px', color: '#fff', background: loginMode === mode ? 'var(--accent-red)' : 'transparent', fontWeight: 600 }}>{label}</button>
+            ))}
+          </div>
+
+          {loginMode === 'phone' ? (
+            <PhoneAuthPanel onAuthenticated={() => navigate(location.state?.from || '/profile', { replace: true })} />
+          ) : <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.88rem', fontWeight: '500' }}>Email Address</label>
               <input
@@ -138,15 +149,16 @@ export default function LoginPage() {
               {isSubmitting ? 'Signing in...' : 'Sign In'}
             </button>
 
-            <button type="button" onClick={handleGoogleSignIn} className="btn-outline" style={{ width: '100%', padding: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-              <span aria-hidden="true" style={{ fontWeight: '800', color: '#4285F4' }}>G</span> Continue with Google
-            </button>
-
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
               Don't have an account?{' '}
               <Link to="/register" style={{ color: 'var(--accent-red)', fontWeight: '600' }}>Create one</Link>
             </p>
-          </form>
+          </form>}
+
+          <button type="button" onClick={handleGoogleSignIn} className="btn-outline" style={{ width: '100%', padding: '12px', marginTop: loginMode === 'email' ? '18px' : '22px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+            <span aria-hidden="true" style={{ fontWeight: '800', color: '#4285F4' }}>G</span> Continue with Google
+          </button>
+          {loginMode === 'phone' && <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>New to CineVerse? <Link to="/register" style={{ color: 'var(--accent-red)', fontWeight: 600 }}>Create an account</Link></p>}
         </div>
       </div>
     </div>

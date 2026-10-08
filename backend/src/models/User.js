@@ -5,13 +5,10 @@ const userSchema = new mongoose.Schema(
     supabaseUserId: {
       type: String,
       required: true,
-      unique: true,
-      index: true,
     },
     email: {
       type: String,
-      required: true,
-      unique: true,
+      default: undefined,
       trim: true,
       lowercase: true,
     },
@@ -37,7 +34,7 @@ const userSchema = new mongoose.Schema(
     },
     city: {
       type: String,
-      default: 'Mumbai',
+      default: 'Vijayawada',
     },
     role: {
       type: String,
@@ -50,6 +47,10 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+userSchema.index({ supabaseUserId: 1 }, { unique: true });
+userSchema.index({ email: 1 }, { unique: true, partialFilterExpression: { email: { $type: 'string' } } });
 userSchema.index({ role: 1 });
+// email_1 needs a one-time option migration on existing databases; connectDB manages it safely.
+userSchema.set('autoIndex', false);
 
 export const User = mongoose.model('User', userSchema);

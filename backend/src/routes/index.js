@@ -13,8 +13,11 @@ import recommendationRoutes from './recommendationRoutes.js';
 import notificationRoutes from './notificationRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import ticketRoutes from './ticketRoutes.js';
+import { globalSearch } from '../controllers/searchController.js';
 
 const router = express.Router();
+
+router.get('/search', globalSearch);
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);

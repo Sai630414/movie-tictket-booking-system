@@ -1,9 +1,55 @@
 import crypto from 'crypto';
-import { razorpayInstance, isRazorpayConfigured } from '../config/razorpay.js';
+import { isRazorpayConfigured } from '../config/razorpay.js';
 import { Payment } from '../models/Payment.js';
 import { Booking } from '../models/Booking.js';
 import { confirmMovieBooking } from './bookingService.js';
 import { sendRefundEmail } from './email/brevoEmailService.js';
+
+const razorpayRequest = async (method, path, body) => {
+  if (!isRazorpayConfigured) {
+    throw Object.assign(new Error('Razorpay is not configured'), { statusCode: 503, errorCode: 'PAYMENT_UNAVAILABLE' });
+  }
+
+  const credentials = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString('base64');
+  let response;
+  try {
+    response = await fetch(`https://api.razorpay.com/v1${path}`, {
+      method,
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        Accept: 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (cause) {
+    console.error('[Razorpay network request failed]', { method, path, reason: cause?.cause?.code || cause?.name || 'NETWORK_ERROR' });
+    throw Object.assign(new Error('Could not connect to Razorpay. Check the backend network connection and retry.'), {
+      statusCode: 502,
+      errorCode: 'PAYMENT_PROVIDER_UNAVAILABLE',
+    });
+  }
+
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    throw Object.assign(new Error('Razorpay returned an unreadable response. Please retry.'), {
+      statusCode: 502,
+      errorCode: 'PAYMENT_PROVIDER_INVALID_RESPONSE',
+    });
+  }
+
+  if (!response.ok) {
+    const description = payload?.error?.description || 'Razorpay could not process the payment request.';
+    throw Object.assign(new Error(description), {
+      statusCode: response.status >= 500 ? 502 : response.status,
+      errorCode: payload?.error?.code || 'RAZORPAY_REQUEST_FAILED',
+    });
+  }
+  return payload;
+};
 
 export const createRazorpayOrder = async (amountInINR, receiptId) => {
   if (!isRazorpayConfigured) {
@@ -15,7 +61,7 @@ export const createRazorpayOrder = async (amountInINR, receiptId) => {
       receipt: receiptId,
       payment_capture: 1,
   };
-  return razorpayInstance.orders.create(options);
+  return razorpayRequest('POST', '/orders', options);
 };
 
 export const createPaymentSignature = (orderId, paymentId) => {
@@ -39,13 +85,11 @@ export const verifyPaymentSignature = (orderId, paymentId, signature) => {
 };
 
 export const fetchCapturedPayment = async (paymentId) => {
-  if (!isRazorpayConfigured) throw Object.assign(new Error('Razorpay is not configured'), { statusCode: 503 });
-  return razorpayInstance.payments.fetch(paymentId);
+  return razorpayRequest('GET', `/payments/${encodeURIComponent(paymentId)}`);
 };
 
 export const fetchRazorpayOrder = async (orderId) => {
-  if (!isRazorpayConfigured) throw Object.assign(new Error('Razorpay is not configured'), { statusCode: 503 });
-  return razorpayInstance.orders.fetch(orderId);
+  return razorpayRequest('GET', `/orders/${encodeURIComponent(orderId)}`);
 };
 
 export const processWebhookEvent = async (body, signature, rawBody) => {

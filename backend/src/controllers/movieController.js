@@ -3,6 +3,7 @@ import { Show } from '../models/Show.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 import slugify from 'slugify';
 import { escapeRegex } from '../utils/search.js';
+import { Venue } from '../models/Venue.js';
 
 export const getMovies = async (req, res, next) => {
   try {
@@ -25,6 +26,7 @@ export const getMovies = async (req, res, next) => {
         { title: { $regex: escapeRegex(search), $options: 'i' } },
         { description: { $regex: escapeRegex(search), $options: 'i' } },
         { cast: { $regex: escapeRegex(search), $options: 'i' } },
+        { director: { $regex: escapeRegex(search), $options: 'i' } },
       ];
     }
 
@@ -47,6 +49,12 @@ export const getMovies = async (req, res, next) => {
 
     if (format) {
       query.formats = format;
+    }
+
+    if (city) {
+      const venues = await Venue.find({ status: 'ACTIVE', city: { $regex: new RegExp(`^${escapeRegex(city)}$`, 'i') } }).select('_id');
+      const movieIds = await Show.distinct('movie', { status: 'ACTIVE', venue: { $in: venues.map((venue) => venue._id) }, showDate: { $gte: new Date() } });
+      query._id = { $in: movieIds };
     }
 
     const pageNum = parseInt(page, 10) || 1;
@@ -113,9 +121,9 @@ export const getTopRatedMovies = async (req, res, next) => {
 
 export const getComingSoonMovies = async (req, res, next) => {
   try {
-    const movies = await Movie.find({
-      $or: [{ releaseType: 'COMING_SOON' }, { releaseDate: { $gt: new Date() } }],
-    })
+    const movies = await Movie.find({ status: 'ACTIVE', $or: [
+      { releaseType: 'COMING_SOON' }, { releaseDate: { $gt: new Date() } },
+    ] })
       .sort({ releaseDate: 1 })
       .limit(10);
     return successResponse(res, movies, 'Coming soon movies retrieved');
@@ -134,7 +142,12 @@ export const getMovieBySlug = async (req, res, next) => {
     }
 
     // Retrieve active shows for this movie
-    const shows = await Show.find({ movie: movie._id, status: 'ACTIVE', showDate: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } })
+    const showQuery = { movie: movie._id, status: 'ACTIVE', showDate: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } };
+    if (req.query.city) {
+      const venues = await Venue.find({ status: 'ACTIVE', city: { $regex: new RegExp(`^${escapeRegex(req.query.city)}$`, 'i') } }).select('_id');
+      showQuery.venue = { $in: venues.map((venue) => venue._id) };
+    }
+    const shows = await Show.find(showQuery)
       .populate('venue screen')
       .sort({ showDate: 1, startTime: 1 });
 

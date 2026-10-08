@@ -176,7 +176,7 @@ export const holdMovieSeats = async (showId, seatIds, userId) => {
  * Confirm Booking after server-side payment verification
  */
 export const confirmMovieBooking = async (bookingId, razorpayOrderId, razorpayPaymentId, razorpaySignature) => {
-  const booking = await Booking.findById(bookingId).select('+ticketToken').populate('show movie venue user');
+  const booking = await Booking.findById(bookingId).select('+ticketToken').populate('show movie event venue user').populate({ path: 'show', populate: { path: 'screen' } });
   if (!booking) {
     throw { statusCode: 404, message: 'Booking not found', errorCode: 'BOOKING_NOT_FOUND' };
   }

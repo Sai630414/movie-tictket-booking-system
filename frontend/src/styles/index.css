@@ -186,3 +186,91 @@ button {
 .animate-fade-in {
   animation: fadeIn 0.4s ease forwards;
 }
+
+/* Cinematic ticket print experience */
+.cv-ticket-page {
+  position: relative;
+  min-height: calc(100vh - 70px);
+  overflow: hidden;
+  padding: 54px 0 72px;
+  color: #fff;
+  background: radial-gradient(ellipse at 50% 18%, rgba(229, 9, 20, 0.16), transparent 48%), var(--bg-primary);
+}
+.cv-ticket-glow {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 420px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.025), transparent);
+}
+.cv-ticket-container { position: relative; z-index: 1; max-width: 760px; }
+.cv-payment-success { text-align: center; margin-bottom: 32px; animation: fadeIn .5s ease both; }
+.cv-success-icon { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 14px; border: 1px solid rgba(34,197,94,.38); border-radius: 50%; color: #4ade80; background: rgba(34,197,94,.1); box-shadow: 0 0 34px rgba(34,197,94,.12); }
+.cv-success-eyebrow { margin: 0 0 8px; color: #86efac; font-size: .72rem; font-weight: 800; letter-spacing: .16em; }
+.cv-payment-success h1 { margin: 0 0 9px; color: #fff; font-size: clamp(1.55rem, 4vw, 2.25rem); }
+.cv-payment-success > p:last-child { margin: 0; color: var(--text-secondary); font-size: .92rem; }
+.cv-printer { width: min(100%, 510px); margin: 0 auto; padding: 0 18px; display: flex; flex-direction: column; align-items: center; }
+.cv-printer-ticket-slot { z-index: 2; width: min(88%, 400px); height: 15px; margin-bottom: -8px; border: 2px solid #62636a; border-bottom: 0; border-radius: 9px 9px 0 0; background: #08090b; }
+.cv-printer-face { position: relative; z-index: 2; width: 100%; padding: 17px 22px 16px; border: 1px solid #45464d; border-radius: 16px 16px 8px 8px; background: linear-gradient(145deg, #292a30, #141519 70%); box-shadow: 0 18px 44px rgba(0,0,0,.46), inset 0 1px rgba(255,255,255,.08); }
+.cv-printer-brand { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; color: #bfc0c7; font-size: .66rem; font-weight: 800; letter-spacing: .12em; }
+.cv-printer-light { width: 8px; height: 8px; border-radius: 50%; background: #43d17a; box-shadow: 0 0 11px #43d17a; }
+.cv-printer-display { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 43px; border: 1px solid rgba(255,255,255,.07); border-radius: 7px; color: #ff5960; background: #090a0d; font-size: .68rem; font-weight: 800; letter-spacing: .09em; }
+.cv-printer-output { width: 100%; height: 10px; margin-top: 14px; overflow: hidden; border-radius: 8px; background: #07080a; box-shadow: inset 0 2px 5px rgba(0,0,0,.9); }
+.cv-printer-output span { display: block; width: 36%; height: 2px; margin: 4px auto; border-radius: 2px; background: #5b5c62; }
+.cv-ticket-paper { position: relative; z-index: 1; width: min(100%, 440px); margin: -3px auto 0; padding: 25px 27px 22px; color: #202027; background-color: #fbf8ef; background-image: repeating-linear-gradient(0deg, rgba(70,54,30,.018) 0, rgba(70,54,30,.018) 1px, transparent 1px, transparent 5px); box-shadow: 0 20px 55px rgba(0,0,0,.42); clip-path: polygon(0 0,100% 0,100% 98.7%,96% 100%,92% 98.7%,88% 100%,84% 98.7%,80% 100%,76% 98.7%,72% 100%,68% 98.7%,64% 100%,60% 98.7%,56% 100%,52% 98.7%,48% 100%,44% 98.7%,40% 100%,36% 98.7%,32% 100%,28% 98.7%,24% 100%,20% 98.7%,16% 100%,12% 98.7%,8% 100%,4% 98.7%,0 100%); }
+.cv-printer.is-printing .cv-ticket-paper { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: .2; overflow: hidden; transform: translateY(-16px); }
+.cv-printer.is-finished .cv-ticket-paper { animation: ticketFeed 1.35s cubic-bezier(.18,.72,.2,1) both; }
+@keyframes ticketFeed { from { max-height: 0; opacity: .3; transform: translateY(-75px); } to { max-height: 720px; opacity: 1; transform: translateY(0); } }
+.cv-ticket-topline,.cv-ticket-bottom { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.cv-ticket-logo { display: flex; align-items: center; gap: 8px; font-size: .9rem; letter-spacing: .04em; }
+.cv-ticket-logo span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: #fff; background: #e50914; font-size: .67rem; }
+.cv-ticket-paid { padding: 4px 8px; border-radius: 4px; color: #117541; background: #d9f8e6; font-size: .64rem; font-weight: 900; letter-spacing: .08em; }
+.cv-ticket-kicker { margin: 19px 0 5px; color: #8a2024; font-size: .61rem; font-weight: 900; letter-spacing: .16em; }
+.cv-ticket-paper h2 { margin: 0 0 9px; color: #19191e; font-size: 1.42rem; line-height: 1.15; }
+.cv-ticket-venue { display: flex; align-items: flex-start; gap: 6px; color: #4c4c52; font-size: .79rem; }
+.cv-ticket-venue svg { flex: 0 0 auto; color: #e50914; }
+.cv-ticket-rule { margin: 15px 0; border-top: 1px dashed rgba(32,32,39,.32); }
+.cv-ticket-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 13px 16px; }
+.cv-ticket-facts > div,.cv-ticket-meta > div { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.cv-ticket-facts span,.cv-ticket-meta span,.cv-ticket-total-label { display: flex; align-items: center; gap: 4px; color: #77777e; font-size: .57rem; font-weight: 800; letter-spacing: .09em; }
+.cv-ticket-facts strong,.cv-ticket-meta strong { overflow-wrap: anywhere; color: #222228; font-size: .76rem; }
+.cv-ticket-meta { display: grid; gap: 10px; }
+.cv-ticket-meta strong { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .7rem; }
+.cv-ticket-bottom { align-items: flex-end; margin-top: 18px; }
+.cv-ticket-total-label { margin-bottom: 3px; }
+.cv-ticket-total { color: #16161a; font-size: 1.55rem; }
+.cv-ticket-qr,.cv-ticket-qr-placeholder { width: 92px; height: 92px; padding: 4px; border-radius: 7px; background: #fff; object-fit: contain; }
+.cv-ticket-footnote { max-width: 280px; margin: 12px 0 0; color: #73737a; font-size: .6rem; line-height: 1.45; }
+.cv-printer-base { display: flex; justify-content: center; gap: 7px; width: min(92%, 470px); height: 20px; border: 1px solid #4c4d53; border-top: 0; border-radius: 0 0 13px 13px; background: linear-gradient(180deg,#1f2025,#111216); box-shadow: 0 18px 32px rgba(0,0,0,.38); }
+.cv-printer-base span { width: 18%; height: 3px; margin-top: 5px; border-radius: 2px; background: #090a0c; }
+.cv-printer.is-printing .cv-printer-light { animation: printerBlink .8s steps(2, jump-none) infinite; }
+@keyframes printerBlink { 50% { opacity: .25; } }
+.cv-ticket-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 28px auto 0; }
+.cv-ticket-actions > * { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 15px; text-decoration: none; }
+.cv-ticket-empty { min-height: 60vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; text-align: center; }
+.cv-ticket-empty h1,.cv-ticket-empty p { margin: 0; }
+.cv-ticket-empty p { color: var(--text-secondary); }
+@media (max-width: 540px) {
+  .cv-ticket-page { padding: 38px 0 48px; }
+  .cv-ticket-container { padding-right: 14px; padding-left: 14px; }
+  .cv-printer { padding: 0 7px; }
+  .cv-printer-face { padding: 14px 14px 13px; }
+  .cv-ticket-paper { padding: 21px 19px 22px; }
+  .cv-ticket-paper h2 { font-size: 1.23rem; }
+  .cv-ticket-facts { gap: 11px 10px; }
+  .cv-ticket-actions > * { flex: 1 1 42%; font-size: .84rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cv-payment-success,.cv-printer.is-finished .cv-ticket-paper { animation: none; }
+  .cv-printer.is-printing .cv-ticket-paper { max-height: 720px; padding-top: 25px; padding-bottom: 22px; opacity: 1; transform: none; }
+  .cv-printer.is-printing .cv-printer-light { animation: none; }
+}
+@media print {
+  body * { visibility: hidden !important; }
+  .cv-ticket-paper,.cv-ticket-paper * { visibility: visible !important; }
+  .cv-ticket-page { min-height: 0; padding: 0; background: #fff; }
+  .cv-ticket-glow,.cv-payment-success,.cv-printer-ticket-slot,.cv-printer-face,.cv-printer-base,.cv-ticket-actions { display: none !important; }
+  .cv-ticket-container { max-width: none; padding: 0; }
+  .cv-printer { width: 100%; padding: 0; }
+  .cv-ticket-paper { position: absolute; top: 20px; left: 50%; width: 440px; margin: 0; transform: translateX(-50%); box-shadow: none; }
+}

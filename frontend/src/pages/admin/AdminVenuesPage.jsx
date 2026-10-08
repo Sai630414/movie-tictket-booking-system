@@ -5,7 +5,7 @@ import LoadingSpinner from '../../components/LoadingSpinner.jsx';
 import AdminLayout from './AdminLayout.jsx';
 
 const EMPTY_VENUE_FORM = {
-  name: '', type: 'CINEMA', address: '', city: 'Mumbai', state: 'Maharashtra',
+  name: '', type: 'CINEMA', address: '', city: 'Vijayawada', state: 'Andhra Pradesh',
   description: '', amenities: 'Dolby Atmos, Recliner Seats, 4K Projection',
   totalCapacity: 150, status: 'ACTIVE'
 };
@@ -59,7 +59,7 @@ export default function AdminVenuesPage() {
       name: venue.name || '',
       type: venue.type || 'CINEMA',
       address: venue.address || '',
-      city: venue.city || 'Mumbai',
+      city: venue.city || 'Vijayawada',
       state: venue.state || 'Maharashtra',
       description: venue.description || '',
       amenities: Array.isArray(venue.amenities) ? venue.amenities.join(', ') : (venue.amenities || ''),

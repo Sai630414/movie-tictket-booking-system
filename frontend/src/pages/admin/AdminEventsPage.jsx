@@ -7,7 +7,7 @@ import AdminLayout from './AdminLayout.jsx';
 const EMPTY_EVENT_FORM = {
   name: '', description: '', poster: '', banner: '',
   category: 'Concert', date: '', startTime: '07:00 PM', endTime: '10:00 PM',
-  venue: '', location: '', city: 'Mumbai', organizer: '',
+  venue: '', location: '', city: 'Vijayawada', organizer: '',
   status: 'ACTIVE',
   ticketCategories: [
     { name: 'General Admission', price: 499, totalQuantity: 200, availableQuantity: 200 },
@@ -76,7 +76,7 @@ export default function AdminEventsPage() {
       endTime: event.endTime || '',
       venue: event.venue?._id || event.venue || '',
       location: event.location || '',
-      city: event.city || 'Mumbai',
+      city: event.city || 'Vijayawada',
       organizer: event.organizer || '',
       status: event.status || 'ACTIVE',
       ticketCategories: event.ticketCategories?.length > 0 ? event.ticketCategories : EMPTY_EVENT_FORM.ticketCategories,

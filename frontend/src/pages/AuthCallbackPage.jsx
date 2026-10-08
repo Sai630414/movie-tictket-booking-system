@@ -29,6 +29,7 @@ export default function AuthCallbackPage() {
         const code = url.searchParams.get('code');
         const tokenHash = url.searchParams.get('token_hash');
         const hasImplicitSession = Boolean(params.get('access_token'));
+        const type = url.searchParams.get('type') || params.get('type');
         if (!code && !tokenHash && !hasImplicitSession) {
           throw new Error('No authentication response was received. Request a fresh verification email, or sign in again.');
         }
@@ -40,8 +41,7 @@ export default function AuthCallbackPage() {
           session = data.session;
         }
 
-        const type = url.searchParams.get('type');
-        if (!session && tokenHash && ['signup', 'email', 'magiclink'].includes(type)) {
+        if (!session && tokenHash && ['signup', 'email', 'magiclink', 'recovery'].includes(type)) {
           const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
           if (error) throw error;
           session = data.session;
@@ -50,6 +50,12 @@ export default function AuthCallbackPage() {
         if (!session) throw new Error('No active session was created. The link may have expired; request a new verification email.');
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) throw userError || new Error('We could not verify this account. Please sign in again.');
+
+        if (type === 'recovery') {
+          window.history.replaceState({}, document.title, '/auth/callback');
+          if (active) navigate('/reset-password', { replace: true, state: { recovery: true } });
+          return;
+        }
 
         await refreshProfile();
         window.history.replaceState({}, document.title, '/auth/callback');

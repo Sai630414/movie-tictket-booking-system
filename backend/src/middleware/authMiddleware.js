@@ -26,18 +26,30 @@ export const requireAuth = async (req, res, next) => {
     }
 
     // Retrieve or create User document in MongoDB
-    let dbUser = await User.findOne({ supabaseUserId: supabaseUser.id });
-
-    if (!dbUser) {
-      dbUser = await User.create({
-        supabaseUserId: supabaseUser.id,
-        email: supabaseUser.email,
-        name: supabaseUser.user_metadata?.name || supabaseUser.user_metadata?.full_name || supabaseUser.email.split('@')[0],
-        phone: supabaseUser.user_metadata?.phone || '',
-        // Roles are assigned only by trusted admin operations, never client metadata.
-        role: 'user',
-      });
-    }
+    const metadata = supabaseUser.user_metadata || {};
+    const email = typeof supabaseUser.email === 'string' && supabaseUser.email.trim()
+      ? supabaseUser.email.trim().toLowerCase()
+      : undefined;
+    const profileUpdates = {
+      ...(email ? { email } : {}),
+      ...(supabaseUser.phone ? { phone: supabaseUser.phone } : {}),
+      ...((metadata.name || metadata.full_name) ? { name: metadata.name || metadata.full_name } : {}),
+      ...(metadata.city ? { city: metadata.city } : {}),
+      ...(metadata.avatar_url ? { profileImage: metadata.avatar_url } : {}),
+    };
+    const dbUser = await User.findOneAndUpdate(
+      { supabaseUserId: supabaseUser.id },
+      {
+        $set: profileUpdates,
+        $setOnInsert: {
+          supabaseUserId: supabaseUser.id,
+          role: 'user',
+          city: 'Vijayawada',
+          preferredLanguage: 'Telugu',
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
+    );
 
     req.supabaseUser = supabaseUser;
     req.user = dbUser;

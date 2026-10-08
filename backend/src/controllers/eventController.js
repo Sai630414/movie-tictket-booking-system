@@ -91,7 +91,7 @@ export const getTrendingEvents = async (req, res, next) => {
 
 export const getNearbyEvents = async (req, res, next) => {
   try {
-    const { city = 'Mumbai' } = req.query;
+    const { city = 'Vijayawada' } = req.query;
     const events = await Event.find({
       status: 'ACTIVE',
       city: { $regex: new RegExp(`^${escapeRegex(city)}$`, 'i') },

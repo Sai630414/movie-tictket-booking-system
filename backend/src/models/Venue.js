@@ -8,6 +8,10 @@ const venueSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    seedKey: { type: String, default: undefined, unique: true, sparse: true },
+    chain: { type: String, default: '' },
+    pincode: { type: String, default: '' },
+    metadataSourceUrl: { type: String, default: '' },
     type: {
       type: String,
       enum: ['CINEMA', 'EVENT_VENUE'],
@@ -15,7 +19,8 @@ const venueSchema = new mongoose.Schema(
     },
     address: {
       type: String,
-      required: true,
+      required: false,
+      default: '',
     },
     city: {
       type: String,
@@ -53,6 +58,7 @@ const venueSchema = new mongoose.Schema(
       enum: ['ACTIVE', 'INACTIVE'],
       default: 'ACTIVE',
     },
+    active: { type: Boolean, default: true },
   },
   {
     timestamps: true,

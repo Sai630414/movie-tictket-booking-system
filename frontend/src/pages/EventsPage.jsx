@@ -17,7 +17,7 @@ export default function EventsPage() {
   const [filters, setFilters] = useState({
     search: '',
     category: '',
-    city: '',
+    city: selectedCity,
     date: '',
     page: 1,
   });
@@ -40,7 +40,10 @@ export default function EventsPage() {
     }
   };
 
-  useEffect(() => { fetchEvents(); }, []);
+  useEffect(() => {
+    setFilters(current => ({ ...current, city: selectedCity, page: 1 }));
+    fetchEvents({ city: selectedCity, page: 1 });
+  }, [selectedCity]);
 
   const applyFilters = () => {
     fetchEvents({ ...filters, page: 1 });

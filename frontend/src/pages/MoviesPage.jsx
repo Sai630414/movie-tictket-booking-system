@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Film, Filter, Search, X, ChevronDown } from 'lucide-react';
 import api from '../services/api.js';
 import MovieCard from '../components/MovieCard.jsx';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
+import { useCity } from '../context/CityContext.jsx';
 
 const GENRES = ['Action', 'Drama', 'Comedy', 'Thriller', 'Romance', 'Sci-Fi', 'Horror', 'Fantasy', 'History', 'Adventure'];
 const LANGUAGES = ['English', 'Hindi', 'Tamil', 'Telugu', 'Malayalam', 'Kannada', 'Marathi'];
@@ -11,10 +12,13 @@ const RELEASE_TYPES = [
   { label: 'New Release', value: 'NEW_RELEASE' },
   { label: 'Re-Release', value: 'RE_RELEASE' },
   { label: 'Coming Soon', value: 'COMING_SOON' },
+  { label: 'Catalog', value: 'CATALOG' },
 ];
 const FORMATS = ['2D', '3D', 'IMAX 2D', 'IMAX 3D', '4DX'];
 
 export default function MoviesPage() {
+  const location = useLocation();
+  const { selectedCity } = useCity();
   const [movies, setMovies] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -36,6 +40,7 @@ export default function MoviesPage() {
       const query = new URLSearchParams();
       const merged = { ...filters, ...params };
       Object.entries(merged).forEach(([k, v]) => { if (v) query.set(k, v); });
+      query.set('city', selectedCity);
       const res = await api.get(`/movies?${query.toString()}`);
       if (res.data?.success) {
         setMovies(res.data.data.movies || []);
@@ -48,7 +53,11 @@ export default function MoviesPage() {
     }
   };
 
-  useEffect(() => { fetchMovies(); }, []);
+  useEffect(() => {
+    const search = new URLSearchParams(location.search).get('search') || '';
+    setFilters(current => ({ ...current, search, page: 1 }));
+    fetchMovies({ search, page: 1, city: selectedCity });
+  }, [location.search, selectedCity]);
 
   const applyFilters = () => {
     fetchMovies({ ...filters, page: 1 });

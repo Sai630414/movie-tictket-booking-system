@@ -1,6 +1,6 @@
 import { Booking } from '../models/Booking.js';
 import { getScheduledStart } from '../services/bookingService.js';
-import { successResponse } from '../utils/apiResponse.js';
+import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
 export const getTicketStatus = (booking) => {
   if (!booking) return 'INVALID';
@@ -18,6 +18,44 @@ export const getTicketStatus = (booking) => {
   if (expiresAt < new Date()) return 'EXPIRED';
   if (booking.ticketUsedAt) return 'ALREADY_USED';
   return 'VALID';
+};
+
+export const getTicket = async (req, res, next) => {
+  try {
+    const token = String(req.params.ticketId || '');
+    if (!/^[A-Za-z0-9_-]{40,64}$/.test(token)) {
+      return errorResponse(res, 'Ticket not found', 'NOT_FOUND', 404);
+    }
+    const booking = await Booking.findOne({ ticketToken: token, user: req.user._id })
+      .select('+ticketToken')
+      .populate('movie event venue show')
+      .populate({ path: 'show', populate: { path: 'screen' } });
+
+    if (!booking || booking.bookingStatus !== 'CONFIRMED' || booking.paymentStatus !== 'PAID' ||
+      booking.bookingStatus === 'CANCELLED' || booking.paymentStatus === 'REFUNDED') {
+      return errorResponse(res, 'This ticket is unavailable or no longer valid', 'TICKET_UNAVAILABLE', 404);
+    }
+
+    return successResponse(res, {
+      ticketId: token,
+      status: getTicketStatus(booking),
+      bookingId: booking.bookingId,
+      bookingType: booking.bookingType,
+      title: booking.movie?.title || booking.event?.name || '',
+      venue: { name: booking.venue?.name || '', city: booking.venue?.city || booking.event?.city || '', address: booking.venue?.address || '' },
+      date: booking.bookingType === 'EVENT' ? booking.event?.date : booking.show?.showDate,
+      time: booking.bookingType === 'EVENT' ? booking.event?.startTime : booking.show?.startTime,
+      screen: booking.show?.screen?.name || '',
+      seats: booking.seats.map(({ seatId, seatType }) => ({ seatId, seatType })),
+      ticketItems: booking.ticketItems.map(({ categoryName, quantity }) => ({ categoryName, quantity })),
+      paymentStatus: booking.paymentStatus,
+      paymentId: booking.razorpayPaymentId,
+      totalAmount: booking.totalAmount,
+      qrCode: booking.qrCode,
+    }, 'Ticket retrieved');
+  } catch (err) {
+    next(err);
+  }
 };
 
 export const verifyTicket = async (req, res, next) => {

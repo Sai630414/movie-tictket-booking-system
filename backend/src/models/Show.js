@@ -15,7 +15,7 @@ const showSeatStatusSchema = new mongoose.Schema({
   },
   seatType: {
     type: String,
-    enum: ['REGULAR', 'PREMIUM', 'VIP', 'RECLINER'],
+    enum: ['REGULAR', 'STANDARD', 'PREMIUM', 'VIP', 'RECLINER'],
     default: 'REGULAR',
   },
   priceMultiplier: {
@@ -44,6 +44,7 @@ const showSeatStatusSchema = new mongoose.Schema({
 
 const showSchema = new mongoose.Schema(
   {
+    seedKey: { type: String, default: undefined, unique: true, sparse: true },
     movie: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Movie',

@@ -262,7 +262,7 @@ export const getBookingById = async (req, res, next) => {
       query = { bookingId: id };
     }
 
-    const booking = await Booking.findOne(query).select('+ticketToken').populate('movie event venue show user');
+    const booking = await Booking.findOne(query).populate('movie event venue show user').populate({ path: 'show', populate: { path: 'screen' } });
     if (!booking) {
       return errorResponse(res, 'Booking not found', 'NOT_FOUND', 404);
     }
@@ -272,6 +272,7 @@ export const getBookingById = async (req, res, next) => {
     }
 
     await ensureSecureTicketQr(booking);
+    booking.ticketToken = undefined;
 
     return successResponse(res, booking, 'Booking details retrieved');
   } catch (err) {
