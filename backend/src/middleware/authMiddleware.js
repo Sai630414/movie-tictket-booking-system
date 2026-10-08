@@ -37,18 +37,34 @@ export const requireAuth = async (req, res, next) => {
       ...(metadata.city ? { city: metadata.city } : {}),
       ...((metadata.avatar_url || metadata.picture) ? { profileImage: metadata.avatar_url || metadata.picture } : {}),
     };
-    const dbUser = await User.findOneAndUpdate(
-      { supabaseUserId: supabaseUser.id },
-      {
-        $set: profileUpdates,
-        $setOnInsert: {
-          supabaseUserId: supabaseUser.id,
-          role: 'user',
-          preferredLanguage: 'Telugu',
+    const verifiedEmail = Boolean(supabaseUser.email_confirmed_at || supabaseUser.confirmed_at);
+    let dbUser;
+    try {
+      dbUser = await User.findOneAndUpdate(
+        { supabaseUserId: supabaseUser.id },
+        {
+          $set: profileUpdates,
+          $setOnInsert: {
+            supabaseUserId: supabaseUser.id,
+            role: 'user',
+            preferredLanguage: 'Telugu',
+          },
         },
-      },
-      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
-    );
+        { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
+      );
+    } catch (err) {
+      // Google OAuth can create a new Supabase identity for an email that
+      // already has a Mongo profile. Reuse that Mongo document only when
+      // Supabase confirms ownership of the email, preserving its bookings,
+      // preferences, and role.
+      if (err?.code !== 11000 || !err?.keyPattern?.email || !email || !verifiedEmail) throw err;
+      dbUser = await User.findOneAndUpdate(
+        { email },
+        { $set: { ...profileUpdates, supabaseUserId: supabaseUser.id } },
+        { new: true, runValidators: true }
+      );
+      if (!dbUser) throw err;
+    }
 
     req.supabaseUser = supabaseUser;
     req.user = dbUser;
