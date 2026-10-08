@@ -31,6 +31,7 @@ const AdminVenuesPage = lazy(() => import('./pages/admin/AdminVenuesPage.jsx'));
 const AdminShowsPage = lazy(() => import('./pages/admin/AdminShowsPage.jsx'));
 const AdminBookingsPage = lazy(() => import('./pages/admin/AdminBookingsPage.jsx'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage.jsx'));
+const AdminTicketScannerPage = lazy(() => import('./pages/admin/AdminTicketScannerPage.jsx'));
 
 function SiteLayout({ children }) {
   return (
@@ -75,6 +76,7 @@ export default function App() {
             <Route path="/admin/venues" element={<AdminVenuesPage />} />
             <Route path="/admin/shows" element={<AdminShowsPage />} />
             <Route path="/admin/bookings" element={<AdminBookingsPage />} />
+            <Route path="/admin/ticket-scanner" element={<AdminTicketScannerPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
 
             <Route path="*" element={<SiteLayout><div style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', color: 'var(--text-secondary)' }}><div><h2 style={{ color: '#fff', marginBottom: '8px' }}>Page not found</h2><p>The page you requested does not exist.</p></div></div></SiteLayout>} />

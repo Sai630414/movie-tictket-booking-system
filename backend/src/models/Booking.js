@@ -121,6 +121,11 @@ const bookingSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    ticketUsedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
     confirmationEmailStatus: { type: String, enum: ['PENDING', 'SENDING', 'SENT', 'FAILED'], default: 'PENDING' },
     confirmationEmailSentAt: { type: Date, default: null },
     confirmationEmailMessageId: { type: String, default: '' },

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Film, Calendar, Building, Play, Ticket, Users, LogOut, ShieldAlert, X, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Film, Calendar, Building, Play, Ticket, Users, LogOut, ShieldAlert, X, ChevronRight, ScanLine } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 const NAV_ITEMS = [
@@ -10,14 +10,15 @@ const NAV_ITEMS = [
   { path: '/admin/venues', label: 'Venues', icon: Building },
   { path: '/admin/shows', label: 'Shows', icon: Play },
   { path: '/admin/bookings', label: 'Bookings', icon: Ticket },
+  { path: '/admin/ticket-scanner', label: 'Ticket Scanner', icon: ScanLine },
   { path: '/admin/users', label: 'Users', icon: Users },
 ];
 
-export default function AdminLayout({ children }) {
+export default function AdminLayout({ children, compact = false }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, isAdmin } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => !compact || window.innerWidth > 760);
 
   useEffect(() => {
     if (!isAdmin) navigate('/');
