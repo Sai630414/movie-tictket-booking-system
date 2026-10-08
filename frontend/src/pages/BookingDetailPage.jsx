@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Calendar, Clock, QrCode, CheckCircle, XCircle } from 'lucide-react';
+import { MapPin, Calendar, Clock, QrCode, CheckCircle, XCircle, Download } from 'lucide-react';
 import api from '../services/api.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { downloadElementAsJpg } from '../utils/downloadJpg.js';
 
 export default function BookingDetailPage() {
   const { id, bookingId } = useParams();
@@ -11,6 +12,7 @@ export default function BookingDetailPage() {
   const { user, loading: authLoading } = useAuth();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
+  const ticketRef = useRef(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -56,7 +58,7 @@ export default function BookingDetailPage() {
         </Link>
 
         {/* Ticket Card */}
-        <div style={{
+        <div ref={ticketRef} style={{
           background: 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)',
           border: `1px solid ${isConfirmed ? 'rgba(34, 197, 94, 0.3)' : 'var(--border-color)'}`,
           borderRadius: '20px', overflow: 'hidden',
@@ -167,13 +169,21 @@ export default function BookingDetailPage() {
                 </div>
               )}
               {/* Actions */}
-              <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}>
+              <div data-ticket-download-exclude="true" style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => window.print()}
                   className="btn-outline"
                   style={{ flex: 1, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.88rem' }}
                 >
                   ðŸ–¨ï¸ Print Ticket
+                </button>
+                <button
+                  type="button"
+                  onClick={() => downloadElementAsJpg(ticketRef.current, `CineVerse-${booking.bookingId || 'ticket'}.jpg`).catch(error => window.alert(error.message))}
+                  className="btn-outline"
+                  style={{ flex: 1, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.88rem' }}
+                >
+                  <Download size={16} /> Download JPG
                 </button>
                 {isConfirmed && (
                   <button

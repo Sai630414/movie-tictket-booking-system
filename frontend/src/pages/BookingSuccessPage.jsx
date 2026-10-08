@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { CheckCircle, Ticket, Printer, Home, CalendarDays, Clock3, MapPin, Download } from 'lucide-react';
+import { downloadElementAsJpg } from '../utils/downloadJpg.js';
 
 const dateLabel = (value) => value
   ? new Date(value).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
@@ -10,6 +11,7 @@ export default function BookingSuccessPage() {
   const location = useLocation();
   const booking = location.state?.booking;
   const [printing, setPrinting] = useState(true);
+  const ticketRef = useRef(null);
 
   useEffect(() => {
     if (!booking) return undefined;
@@ -56,7 +58,7 @@ export default function BookingSuccessPage() {
             <div className="cv-printer-output" aria-hidden="true"><span /></div>
           </div>
 
-          <article className="cv-ticket-paper" aria-label={`${title} digital ticket`}>
+          <article ref={ticketRef} className="cv-ticket-paper" aria-label={`${title} digital ticket`}>
             <div className="cv-ticket-topline">
               <div className="cv-ticket-logo"><span>▶</span><strong>CINEVERSE</strong></div>
               <span className="cv-ticket-paid">PAID</span>
@@ -90,7 +92,11 @@ export default function BookingSuccessPage() {
 
         <nav className="cv-ticket-actions" aria-label="Ticket actions">
           <Link to={`/bookings/${booking._id || booking.bookingId}`} className="btn-primary"><Ticket size={17} /> View Ticket</Link>
-          <button type="button" className="btn-outline" onClick={() => window.print()}><Download size={17} /> Download Ticket</button>
+          <button
+            type="button"
+            className="btn-outline"
+            onClick={() => downloadElementAsJpg(ticketRef.current, `CineVerse-${booking.bookingId || 'ticket'}.jpg`).catch(error => window.alert(error.message))}
+          ><Download size={17} /> Download JPG</button>
           <Link to="/" className="btn-outline"><Home size={17} /> Back to Home</Link>
           <Link to="/bookings" className="btn-outline">My Bookings</Link>
         </nav>
