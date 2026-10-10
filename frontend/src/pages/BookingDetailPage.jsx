@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Calendar, Clock, QrCode, CheckCircle, XCircle } from 'lucide-react';
+import { MapPin, Calendar, Clock, QrCode, CheckCircle, XCircle, Mail, MessageSquare, Send } from 'lucide-react';
 import api from '../services/api.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
 
@@ -8,6 +8,28 @@ export default function BookingDetailPage() {
   const { id } = useParams();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sendingDelivery, setSendingDelivery] = useState(null);
+  const [deliveryFeedback, setDeliveryFeedback] = useState('');
+
+  const handleSendTicket = async (channel) => {
+    setSendingDelivery(channel);
+    setDeliveryFeedback('');
+    try {
+      const res = await api.post(`/bookings/${booking._id}/send-ticket`, { channels: [channel] });
+      if (res.data?.success) {
+        const info = res.data.data?.[channel];
+        if (info?.previewUrl) {
+          setDeliveryFeedback(`Email dispatched! (Preview: ${info.previewUrl})`);
+        } else {
+          setDeliveryFeedback(`Ticket sent via ${channel.toUpperCase()} successfully!`);
+        }
+      }
+    } catch (err) {
+      setDeliveryFeedback(`Failed to send: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setSendingDelivery(null);
+    }
+  };
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -144,6 +166,67 @@ export default function BookingDetailPage() {
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Payment pending — QR code will appear after confirmation</p>
                 </div>
               )}
+              {/* Delivery notification feedback */}
+              {deliveryFeedback && (
+                <div style={{
+                  marginTop: '16px', padding: '10px 14px', borderRadius: '8px',
+                  backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)',
+                  color: '#86efac', fontSize: '0.85rem', textAlign: 'center', wordBreak: 'break-all'
+                }}>
+                  {deliveryFeedback}
+                </div>
+              )}
+
+              {/* Delivery Channels */}
+              {isConfirmed && (
+                <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Deliver Ticket To
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => handleSendTicket('email')}
+                      disabled={sendingDelivery !== null}
+                      className="btn-outline"
+                      style={{
+                        flex: 1, minWidth: '130px', padding: '8px 12px', fontSize: '0.82rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                        cursor: sendingDelivery ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      <Mail size={14} color="#60a5fa" />
+                      {sendingDelivery === 'email' ? 'Sending Email...' : 'Send to Email'}
+                    </button>
+                    <button
+                      onClick={() => handleSendTicket('whatsapp')}
+                      disabled={sendingDelivery !== null}
+                      className="btn-outline"
+                      style={{
+                        flex: 1, minWidth: '130px', padding: '8px 12px', fontSize: '0.82rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                        cursor: sendingDelivery ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      <MessageSquare size={14} color="#22c55e" />
+                      {sendingDelivery === 'whatsapp' ? 'Sending WhatsApp...' : 'Send to WhatsApp'}
+                    </button>
+                    <button
+                      onClick={() => handleSendTicket('sms')}
+                      disabled={sendingDelivery !== null}
+                      className="btn-outline"
+                      style={{
+                        flex: 1, minWidth: '110px', padding: '8px 12px', fontSize: '0.82rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                        cursor: sendingDelivery ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      <Send size={14} color="#f59e0b" />
+                      {sendingDelivery === 'sms' ? 'Sending SMS...' : 'Send SMS'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Actions */}
               <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}>
                 <button

@@ -1,10 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { CheckCircle, Ticket, Download, QrCode, MapPin, Calendar, Clock } from 'lucide-react';
+import { CheckCircle, Ticket, Download, QrCode, MapPin, Calendar, Clock, Mail, MessageSquare } from 'lucide-react';
+import api from '../services/api.js';
 
 export default function BookingSuccessPage() {
   const location = useLocation();
   const booking = location.state?.booking;
+  const [sendingDelivery, setSendingDelivery] = useState(null);
+  const [deliveryFeedback, setDeliveryFeedback] = useState('');
+
+  const handleSendTicket = async (channel) => {
+    if (!booking?._id) return;
+    setSendingDelivery(channel);
+    setDeliveryFeedback('');
+    try {
+      const res = await api.post(`/bookings/${booking._id}/send-ticket`, { channels: [channel] });
+      if (res.data?.success) {
+        const info = res.data.data?.[channel];
+        if (info?.previewUrl) {
+          setDeliveryFeedback(`Email dispatched! (Preview: ${info.previewUrl})`);
+        } else {
+          setDeliveryFeedback(`Ticket sent via ${channel.toUpperCase()} successfully!`);
+        }
+      }
+    } catch (err) {
+      setDeliveryFeedback(`Delivery failed: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setSendingDelivery(null);
+    }
+  };
 
   if (!booking) {
     return (
@@ -157,6 +181,51 @@ export default function BookingSuccessPage() {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '8px' }}>QR Code generating...</p>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Delivery Feedback */}
+        {deliveryFeedback && (
+          <div style={{
+            marginBottom: '20px', padding: '12px 16px', borderRadius: '10px',
+            backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)',
+            color: '#86efac', fontSize: '0.88rem', textAlign: 'center', wordBreak: 'break-all'
+          }}>
+            {deliveryFeedback}
+          </div>
+        )}
+
+        {/* Quick Ticket Delivery Options */}
+        <div className="glass-card" style={{ marginBottom: '24px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ color: '#fff', fontWeight: '600', fontSize: '0.92rem' }}>Send copy of ticket</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Receive instant QR pass to your email or WhatsApp</div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => handleSendTicket('email')}
+              disabled={sendingDelivery !== null}
+              className="btn-outline"
+              style={{
+                padding: '8px 14px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px',
+                cursor: sendingDelivery ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <Mail size={14} color="#60a5fa" />
+              {sendingDelivery === 'email' ? 'Sending...' : 'Email'}
+            </button>
+            <button
+              onClick={() => handleSendTicket('whatsapp')}
+              disabled={sendingDelivery !== null}
+              className="btn-outline"
+              style={{
+                padding: '8px 14px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px',
+                cursor: sendingDelivery ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <MessageSquare size={14} color="#22c55e" />
+              {sendingDelivery === 'whatsapp' ? 'Sending...' : 'WhatsApp'}
+            </button>
           </div>
         </div>
 

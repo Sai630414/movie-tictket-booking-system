@@ -9,8 +9,15 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
-    await connectDB();
-    startHoldCleanerJob();
+    try {
+      await connectDB();
+      startHoldCleanerJob();
+    } catch (dbErr) {
+      if (process.env.NODE_ENV === 'production') {
+        throw dbErr;
+      }
+      console.warn('⚠️ [Database Notice]: Running in development. Please configure MONGODB_URI in backend/.env for database operations.');
+    }
 
     app.listen(PORT, () => {
       console.log(`==================================================`);

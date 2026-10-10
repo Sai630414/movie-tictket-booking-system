@@ -2,6 +2,7 @@ import { Booking } from '../models/Booking.js';
 import { Show } from '../models/Show.js';
 import { Event } from '../models/Event.js';
 import { cancelBooking } from '../services/bookingService.js';
+import { sendTicketDelivery } from '../services/deliveryService.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
 export const createBooking = async (req, res, next) => {
@@ -288,6 +289,37 @@ export const cancelUserBooking = async (req, res, next) => {
     if (err.statusCode) {
       return errorResponse(res, err.message, err.errorCode, err.statusCode);
     }
+    next(err);
+  }
+};
+
+export const sendTicketNotification = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { channels = ['email'], email, phone } = req.body;
+
+    let query = { _id: id };
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      query = { bookingId: id };
+    }
+
+    const booking = await Booking.findOne(query).populate('movie event venue show user');
+    if (!booking) {
+      return errorResponse(res, 'Booking not found', 'NOT_FOUND', 404);
+    }
+
+    if (req.user.role !== 'admin' && booking.user._id.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized access to booking', 'FORBIDDEN', 403);
+    }
+
+    const deliveryResults = await sendTicketDelivery(booking, {
+      channels,
+      email: email || req.user.email,
+      phone: phone || req.user.phone,
+    });
+
+    return successResponse(res, deliveryResults, 'Ticket delivery dispatched successfully');
+  } catch (err) {
     next(err);
   }
 };
