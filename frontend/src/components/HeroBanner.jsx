@@ -82,9 +82,9 @@ export default function HeroBanner({ movies = [] }) {
 
           {/* Title */}
           <h1 style={{
-            fontSize: '3.2rem',
-            lineHeight: '1.1',
-            marginBottom: '16px',
+            fontSize: 'clamp(1.8rem, 6vw, 3.2rem)',
+            lineHeight: '1.15',
+            marginBottom: '14px',
             color: '#ffffff',
             textShadow: '0 4px 20px rgba(0,0,0,0.8)'
           }}>
@@ -93,7 +93,7 @@ export default function HeroBanner({ movies = [] }) {
 
           {/* Genres */}
           {current.genre && (
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
               {current.genre.map((g) => (
                 <span key={g} style={{
                   fontSize: '0.82rem',
@@ -112,9 +112,9 @@ export default function HeroBanner({ movies = [] }) {
           {/* Description */}
           <p style={{
             color: 'var(--text-secondary)',
-            fontSize: '1rem',
-            lineHeight: '1.6',
-            marginBottom: '28px',
+            fontSize: 'clamp(0.88rem, 2.5vw, 1rem)',
+            lineHeight: '1.5',
+            marginBottom: '24px',
             display: '-webkit-box',
             WebkitLineClamp: 3,
             WebkitBoxOrient: 'vertical',
@@ -124,9 +124,9 @@ export default function HeroBanner({ movies = [] }) {
           </p>
 
           {/* Action CTAs */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link to={`/movies/${current.slug}`} className="btn-primary" style={{ padding: '14px 28px', fontSize: '1rem' }}>
-              <Ticket size={20} /> Book Tickets
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <Link to={`/movies/${current.slug}`} className="btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem', flex: '1 1 auto', minWidth: '140px', justifyContent: 'center' }}>
+              <Ticket size={18} /> Book Tickets
             </Link>
 
             {(current.trailerUrl || current.trailer?.url || current.trailer?.videoId) && (
@@ -134,9 +134,9 @@ export default function HeroBanner({ movies = [] }) {
                 type="button"
                 onClick={() => setShowTrailer(true)}
                 className="btn-secondary"
-                style={{ padding: '14px 24px', fontSize: '1rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                style={{ padding: '12px 20px', fontSize: '0.95rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flex: '1 1 auto', minWidth: '140px' }}
               >
-                <Play size={18} fill="#ffffff" /> Watch Trailer
+                <Play size={16} fill="#ffffff" /> Watch Trailer
               </button>
             )}
           </div>

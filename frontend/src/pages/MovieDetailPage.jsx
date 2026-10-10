@@ -64,7 +64,8 @@ export default function MovieDetailPage() {
       {/* Backdrop Hero */}
       <div style={{
         position: 'relative',
-        height: '500px',
+        minHeight: '400px',
+        height: 'clamp(420px, 62vh, 520px)',
         overflow: 'hidden',
         backgroundColor: '#000'
       }}>
@@ -85,27 +86,27 @@ export default function MovieDetailPage() {
           inset: 0,
           display: 'flex',
           alignItems: 'flex-end',
-          paddingBottom: '48px',
-          gap: '32px'
+          paddingBottom: 'clamp(20px, 4vw, 44px)',
+          gap: 'clamp(16px, 3vw, 32px)'
         }}>
           {/* Poster */}
           {movie.poster ? <img
             src={movie.poster}
             alt={movie.title}
             style={{
-              width: '180px',
-              height: '270px',
+              width: 'clamp(110px, 18vw, 180px)',
+              height: 'clamp(165px, 27vw, 270px)',
               objectFit: 'cover',
               borderRadius: '12px',
               border: '2px solid rgba(255,255,255,0.2)',
               boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
               flexShrink: 0
             }}
-          /> : <div aria-hidden="true" style={{ width: 180, height: 270, flexShrink: 0, borderRadius: 12, border: '2px solid rgba(255,255,255,.18)', display: 'grid', placeItems: 'center', padding: 14, textAlign: 'center', color: '#fff', fontSize: '1.05rem', fontWeight: 800, background: 'linear-gradient(145deg,#3a252d,#111116)' }}>{movie.title}</div>}
+          /> : <div aria-hidden="true" style={{ width: 140, height: 210, flexShrink: 0, borderRadius: 12, border: '2px solid rgba(255,255,255,.18)', display: 'grid', placeItems: 'center', padding: 14, textAlign: 'center', color: '#fff', fontSize: '1.05rem', fontWeight: 800, background: 'linear-gradient(145deg,#3a252d,#111116)' }}>{movie.title}</div>}
 
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             {/* Meta badges */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
               <span className="badge badge-gold" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Star size={12} fill="var(--accent-gold)" /> {(movie.rating || 0).toFixed(1)}
               </span>
@@ -115,20 +116,20 @@ export default function MovieDetailPage() {
               ))}
             </div>
 
-            <h1 style={{ fontSize: '2.8rem', color: '#fff', marginBottom: '12px', lineHeight: 1.1 }}>{movie.title}</h1>
+            <h1 style={{ fontSize: 'clamp(1.5rem, 4.5vw, 2.8rem)', color: '#fff', marginBottom: '10px', lineHeight: 1.15 }}>{movie.title}</h1>
 
-            <div style={{ display: 'flex', gap: '20px', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '12px', color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '12px', flexWrap: 'wrap' }}>
               {movie.genre?.map(g => (
-                <span key={g} style={{ color: 'rgba(255,255,255,0.75)', background: 'rgba(255,255,255,0.1)', padding: '3px 10px', borderRadius: '12px', fontSize: '0.82rem' }}>{g}</span>
+                <span key={g} style={{ color: 'rgba(255,255,255,0.75)', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.78rem' }}>{g}</span>
               ))}
               <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Clock size={14} /> {movie.duration} mins</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><Globe size={14} /> {movie.language}</span>
             </div>
 
             <p style={{
-              color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.7,
+              color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6,
               maxWidth: '600px',
-              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
             }}>
               {movie.description}
             </p>
@@ -137,9 +138,9 @@ export default function MovieDetailPage() {
               <button
                 type="button" onClick={() => setShowTrailer(true)}
                 className="btn-secondary"
-                style={{ display: 'inline-flex', marginTop: '20px', gap: '8px' }}
+                style={{ display: 'inline-flex', marginTop: '14px', gap: '6px', padding: '10px 18px', fontSize: '0.9rem' }}
               >
-                <Play size={16} fill="#fff" /> Watch Trailer
+                <Play size={15} fill="#fff" /> Watch Trailer
               </button>
             )}
           </div>
@@ -147,8 +148,8 @@ export default function MovieDetailPage() {
       </div>
 
       {/* Details Section */}
-      <div className="container" style={{ paddingTop: '40px', paddingBottom: '60px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '40px' }}>
+      <div className="container" style={{ paddingTop: '32px', paddingBottom: '60px' }}>
+        <div className="responsive-two-col">
 
           {/* Left: Cast, Director, Shows */}
           <div>
@@ -187,7 +188,7 @@ export default function MovieDetailPage() {
                 </h2>
 
                 {/* Date Selector */}
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                <div className="scroll-touch-x" style={{ display: 'flex', gap: '10px', marginBottom: '24px', paddingBottom: '6px' }}>
                   {showDates.map(d => {
                     const dateObj = new Date(d + 'T00:00:00');
                     return (
@@ -203,7 +204,8 @@ export default function MovieDetailPage() {
                           color: displayDate === d ? 'var(--accent-red)' : '#fff',
                           fontWeight: displayDate === d ? '700' : '400',
                           fontSize: '0.88rem',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          flexShrink: 0
                         }}
                       >
                         <div style={{ fontWeight: '700' }}>

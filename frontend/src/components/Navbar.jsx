@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Film, Calendar, MapPin, Search, Ticket, User, LogOut, ShieldAlert, ChevronDown } from 'lucide-react';
+import { Film, Calendar, MapPin, Search, Ticket, User, LogOut, ShieldAlert, ChevronDown, Menu, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCity } from '../context/CityContext.jsx';
 import api from '../services/api.js';
@@ -23,8 +23,16 @@ export default function Navbar() {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchResults, setSearchResults] = useState(null);
   const [searching, setSearching] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setShowCityDropdown(false);
+    setShowProfileDropdown(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const term = searchQuery.trim();
@@ -67,29 +75,31 @@ export default function Navbar() {
         display: 'flex',
         alignItems: 'center'
       }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           
-          {/* Logo & Main Nav */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '36px' }}>
+          {/* Logo & Desktop Main Nav */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
               <div style={{
-                width: '38px',
-                height: '38px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '8px',
                 background: 'linear-gradient(135deg, var(--accent-red) 0%, #b20710 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(229,9,20,0.5)'
+                boxShadow: '0 4px 12px rgba(229,9,20,0.5)',
+                flexShrink: 0
               }}>
-                <Film size={22} color="#ffffff" />
+                <Film size={20} color="#ffffff" />
               </div>
-              <span style={{ fontSize: '1.4rem', fontWeight: '800', letterSpacing: '-0.03em', color: '#ffffff' }}>
+              <span style={{ fontSize: '1.35rem', fontWeight: '800', letterSpacing: '-0.03em', color: '#ffffff', whiteSpace: 'nowrap' }}>
                 CINE<span style={{ color: 'var(--accent-red)' }}>VERSE</span>
               </span>
             </Link>
 
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            {/* Desktop Navigation Links */}
+            <nav className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               <Link to="/movies" style={{
                 color: isActive('/movies') ? 'var(--accent-red)' : 'var(--text-secondary)',
                 fontWeight: isActive('/movies') ? '600' : '500',
@@ -127,11 +137,12 @@ export default function Navbar() {
           </div>
 
           {/* Right Side Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             
-            {/* Search Button */}
+            {/* Search Button (Desktop) */}
             <button
               onClick={() => setShowSearchModal(true)}
+              className="hide-on-mobile"
               style={{
                 background: 'rgba(255, 255, 255, 0.06)',
                 border: '1px solid var(--border-color)',
@@ -148,6 +159,25 @@ export default function Navbar() {
               <span>Search movies, events...</span>
             </button>
 
+            {/* Search Icon Button (Mobile) */}
+            <button
+              onClick={() => setShowSearchModal(true)}
+              className="show-on-mobile hide-on-desktop"
+              style={{
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '50%',
+                width: '38px',
+                height: '38px',
+                color: 'var(--text-secondary)',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              aria-label="Search"
+            >
+              <Search size={17} />
+            </button>
+
             {/* City Selector Dropdown */}
             <div style={{ position: 'relative' }}>
               <button
@@ -157,16 +187,18 @@ export default function Navbar() {
                   color: 'var(--text-primary)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '4px',
                   fontWeight: '600',
-                  fontSize: '0.9rem',
-                  padding: '6px 12px',
+                  fontSize: '0.88rem',
+                  padding: '6px 8px',
                   borderRadius: '6px'
                 }}
               >
-                <MapPin size={16} color="var(--accent-red)" />
-                {selectedCity}
-                <ChevronDown size={14} />
+                <MapPin size={15} color="var(--accent-red)" />
+                <span style={{ maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {selectedCity}
+                </span>
+                <ChevronDown size={13} />
               </button>
 
               {showCityDropdown && (
@@ -182,8 +214,7 @@ export default function Navbar() {
                   border: '1px solid var(--border-color)',
                   borderRadius: '8px',
                   boxShadow: 'var(--shadow-lg)',
-                  overflow: 'hidden',
-                  zIndex: 100
+                  zIndex: 1100
                 }}>
                   {availableCities.map((city) => (
                     <div
@@ -209,82 +240,53 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* User Profile / Auth Actions */}
-            {user ? (
-              <div style={{ position: 'relative' }}>
-                <button
-                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    background: 'transparent',
-                    border: 'none'
-                  }}
-                >
-                  <img
-                    src={user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop'}
-                    alt={user.name}
+            {/* User Profile / Auth Actions (Desktop) */}
+            <div className="hide-on-mobile">
+              {user ? (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                     style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      border: '2px solid var(--accent-red)'
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer'
                     }}
-                  />
-                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-primary)' }}>
-                    {user.name || 'Account'}
-                  </span>
-                </button>
-
-                {showProfileDropdown && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: 0,
-                    marginTop: '12px',
-                    width: '200px',
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '10px',
-                    boxShadow: 'var(--shadow-lg)',
-                    padding: '8px 0',
-                    zIndex: 100
-                  }}>
-                    <Link
-                      to="/profile"
-                      onClick={() => setShowProfileDropdown(false)}
+                  >
+                    <img
+                      src={user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop'}
+                      alt={user.name}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '12px 18px',
-                        fontSize: '0.9rem',
-                        color: 'var(--text-primary)'
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '2px solid var(--accent-red)'
                       }}
-                    >
-                      <User size={16} /> My Profile
-                    </Link>
+                    />
+                    <span style={{ fontSize: '0.88rem', fontWeight: '600', color: 'var(--text-primary)', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {user.name || 'Account'}
+                    </span>
+                  </button>
 
-                    <Link
-                      to="/bookings"
-                      onClick={() => setShowProfileDropdown(false)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '12px 18px',
-                        fontSize: '0.9rem',
-                        color: 'var(--text-primary)'
-                      }}
-                    >
-                      <Ticket size={16} /> My Bookings
-                    </Link>
-
-                    {isAdmin && (
+                  {showProfileDropdown && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '12px',
+                      width: '200px',
+                      backgroundColor: 'var(--bg-card)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '10px',
+                      boxShadow: 'var(--shadow-lg)',
+                      padding: '8px 0',
+                      zIndex: 1100
+                    }}>
                       <Link
-                        to="/admin"
+                        to="/profile"
                         onClick={() => setShowProfileDropdown(false)}
                         style={{
                           display: 'flex',
@@ -292,51 +294,235 @@ export default function Navbar() {
                           gap: '10px',
                           padding: '12px 18px',
                           fontSize: '0.9rem',
-                          color: 'var(--accent-gold)'
+                          color: 'var(--text-primary)'
                         }}
                       >
-                        <ShieldAlert size={16} /> Admin Panel
+                        <User size={16} /> My Profile
                       </Link>
-                    )}
 
-                    <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '6px 0' }} />
+                      <Link
+                        to="/bookings"
+                        onClick={() => setShowProfileDropdown(false)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '12px 18px',
+                          fontSize: '0.9rem',
+                          color: 'var(--text-primary)'
+                        }}
+                      >
+                        <Ticket size={16} /> My Bookings
+                      </Link>
 
-                    <button
-                      onClick={() => {
-                        logout();
-                        setShowProfileDropdown(false);
-                        navigate('/');
-                      }}
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '12px 18px',
-                        fontSize: '0.9rem',
-                        color: 'var(--accent-red)',
-                        background: 'transparent'
-                      }}
-                    >
-                      <LogOut size={16} /> Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <Link to="/login" className="btn-outline" style={{ padding: '8px 16px', fontSize: '0.88rem' }}>
-                  Sign In
-                </Link>
-                <Link to="/register" className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.88rem' }}>
-                  Get Started
-                </Link>
-              </div>
-            )}
+                      {isAdmin && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setShowProfileDropdown(false)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '12px 18px',
+                            fontSize: '0.9rem',
+                            color: 'var(--accent-gold)'
+                          }}
+                        >
+                          <ShieldAlert size={16} /> Admin Panel
+                        </Link>
+                      )}
+
+                      <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '6px 0' }} />
+
+                      <button
+                        onClick={() => {
+                          logout();
+                          setShowProfileDropdown(false);
+                          navigate('/');
+                        }}
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '12px 18px',
+                          fontSize: '0.9rem',
+                          color: 'var(--accent-red)',
+                          background: 'transparent'
+                        }}
+                      >
+                        <LogOut size={16} /> Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <Link to="/login" className="btn-outline" style={{ padding: '7px 14px', fontSize: '0.85rem' }}>
+                    Sign In
+                  </Link>
+                  <Link to="/register" className="btn-primary" style={{ padding: '7px 14px', fontSize: '0.85rem' }}>
+                    Get Started
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="show-on-mobile hide-on-desktop"
+              style={{
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                width: '38px',
+                height: '38px',
+                color: '#fff',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+
           </div>
         </div>
       </header>
+
+      {/* Mobile Drawer Menu */}
+      {mobileMenuOpen && (
+        <div className="mobile-nav-drawer" style={{ zIndex: 1200 }}>
+          {/* User profile / guest section */}
+          {user ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '14px',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--border-color)',
+              marginBottom: '4px'
+            }}>
+              <img
+                src={user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop'}
+                alt={user.name}
+                style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-red)' }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: '700', color: '#fff', fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.name || 'Member'}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.email || user.phone}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="btn-outline"
+                style={{ textAlign: 'center', padding: '12px', fontSize: '0.92rem' }}
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setMobileMenuOpen(false)}
+                className="btn-primary"
+                style={{ textAlign: 'center', padding: '12px', fontSize: '0.92rem' }}
+              >
+                Get Started
+              </Link>
+            </div>
+          )}
+
+          {/* Navigation Links */}
+          <Link
+            to="/movies"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`mobile-nav-link ${isActive('/movies') ? 'active' : ''}`}
+          >
+            <Film size={20} color="var(--accent-red)" />
+            <span>Movies</span>
+          </Link>
+
+          <Link
+            to="/events"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`mobile-nav-link ${isActive('/events') ? 'active' : ''}`}
+          >
+            <Calendar size={20} color="#38bdf8" />
+            <span>Events</span>
+          </Link>
+
+          <Link
+            to="/venues"
+            onClick={() => setMobileMenuOpen(false)}
+            className={`mobile-nav-link ${isActive('/venues') ? 'active' : ''}`}
+          >
+            <MapPin size={20} color="#a855f7" />
+            <span>Venues</span>
+          </Link>
+
+          {user && (
+            <>
+              <Link
+                to="/bookings"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`mobile-nav-link ${isActive('/bookings') ? 'active' : ''}`}
+              >
+                <Ticket size={20} color="#22c55e" />
+                <span>My Bookings</span>
+              </Link>
+
+              <Link
+                to="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`mobile-nav-link ${isActive('/profile') ? 'active' : ''}`}
+              >
+                <User size={20} color="#f59e0b" />
+                <span>My Profile</span>
+              </Link>
+
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`mobile-nav-link ${isActive('/admin') ? 'active' : ''}`}
+                >
+                  <ShieldAlert size={20} color="var(--accent-gold)" />
+                  <span style={{ color: 'var(--accent-gold)' }}>Admin Panel</span>
+                </Link>
+              )}
+
+              <button
+                onClick={() => {
+                  logout();
+                  setMobileMenuOpen(false);
+                  navigate('/');
+                }}
+                className="mobile-nav-link"
+                style={{
+                  width: '100%',
+                  marginTop: '12px',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  borderColor: 'rgba(239, 68, 68, 0.3)',
+                  color: '#ef4444'
+                }}
+              >
+                <LogOut size={20} color="#ef4444" />
+                <span>Sign Out</span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Global Search Modal */}
       {showSearchModal && (
@@ -346,42 +532,43 @@ export default function Navbar() {
           left: 0,
           width: '100vw',
           height: '100vh',
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.88)',
+          backdropFilter: 'blur(12px)',
           zIndex: 2000,
           display: 'flex',
           justifyContent: 'center',
-          paddingTop: '100px'
+          paddingTop: '60px'
         }}>
-          <div style={{ width: '100%', maxWidth: '700px', padding: '0 20px' }}>
+          <div style={{ width: '100%', maxWidth: '700px', padding: '0 16px' }}>
             <form onSubmit={handleSearchSubmit} style={{ position: 'relative' }}>
               <input
                 type="text"
                 autoFocus
-                placeholder="Search movies, events, directors, actors..."
+                placeholder="Search movies, events, actors..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '18px 24px',
-                  paddingLeft: '54px',
+                  padding: '16px 20px',
+                  paddingLeft: '50px',
+                  paddingRight: '46px',
                   backgroundColor: 'var(--bg-secondary)',
                   border: '2px solid var(--accent-red)',
                   borderRadius: '30px',
                   color: '#ffffff',
-                  fontSize: '1.1rem',
+                  fontSize: '1rem',
                   outline: 'none',
                   boxShadow: '0 10px 30px rgba(229, 9, 20, 0.3)'
                 }}
               />
-              <Search size={22} color="var(--text-secondary)" style={{ position: 'absolute', left: '20px', top: '18px' }} />
+              <Search size={20} color="var(--text-secondary)" style={{ position: 'absolute', left: '18px', top: '18px' }} />
               <button
                 type="button"
                 onClick={() => setShowSearchModal(false)}
                 style={{
                   position: 'absolute',
-                  right: '16px',
-                  top: '14px',
+                  right: '14px',
+                  top: '12px',
                   background: 'rgba(255,255,255,0.1)',
                   color: '#ffffff',
                   borderRadius: '50%',

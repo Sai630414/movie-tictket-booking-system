@@ -205,14 +205,14 @@ export default function CheckoutPage() {
   );
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', padding: '40px 0' }}>
+    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', padding: 'clamp(20px, 4vw, 40px) 0' }}>
       <div className="container" style={{ maxWidth: '720px' }}>
         
         {/* Header with Hold Countdown */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h1 style={{ fontSize: '2rem', color: '#fff' }}>Secure Checkout</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>Review your ticket reservation and complete payment</p>
+            <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', color: '#fff' }}>Secure Checkout</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginTop: '4px' }}>Review your ticket reservation and complete payment</p>
           </div>
           {timeLeft > 0 ? (
             <div style={{

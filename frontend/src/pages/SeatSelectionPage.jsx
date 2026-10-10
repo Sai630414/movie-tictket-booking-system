@@ -188,13 +188,13 @@ export default function SeatSelectionPage() {
         </div>
       </div>
 
-      <div className="container" style={{ paddingTop: '32px', paddingBottom: '60px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '32px' }}>
+      <div className="container" style={{ paddingTop: '24px', paddingBottom: selected.length > 0 ? '100px' : '60px' }}>
+        <div className="responsive-two-col">
 
           {/* Seat Map */}
           <div>
             {/* Screen Indicator */}
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
               <div style={{
                 display: 'inline-block', width: '70%', height: '6px',
                 background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
@@ -205,8 +205,13 @@ export default function SeatSelectionPage() {
               </p>
             </div>
 
+            {/* Mobile Swipe Hint */}
+            <div className="show-on-mobile hide-on-desktop" style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '14px', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <span>👆 Scroll horizontally to view all seats</span>
+            </div>
+
             {/* Seat Grid */}
-            <div style={{ overflowX: 'auto' }}>
+            <div className="scroll-touch-x" style={{ paddingBottom: '12px' }}>
               <div style={{ minWidth: 'fit-content', margin: '0 auto' }}>
                 {Object.entries(seatsByRow).map(([row, rowSeats]) => (
                   <div key={row} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', justifyContent: 'center' }}>
@@ -378,6 +383,43 @@ export default function SeatSelectionPage() {
           </div>
         </div>
       </div>
+
+      {/* Sticky Mobile Action Bar */}
+      {selected.length > 0 && (
+        <div className="show-on-mobile hide-on-desktop" style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: 'rgba(18, 18, 18, 0.96)',
+          backdropFilter: 'blur(16px)',
+          borderTop: '1px solid var(--border-color)',
+          padding: '12px 16px',
+          zIndex: 1000,
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.6)'
+        }}>
+          <div>
+            <div style={{ color: '#fff', fontWeight: '800', fontSize: '1.15rem' }}>
+              ₹{total}
+            </div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+              {selected.length} seat{selected.length > 1 ? 's' : ''} ({selected.join(', ')})
+            </div>
+          </div>
+          <button
+            onClick={proceedToCheckout}
+            disabled={holdLoading}
+            className="btn-primary"
+            style={{ padding: '10px 20px', fontSize: '0.92rem', gap: '6px' }}
+          >
+            {holdLoading ? 'Reserving...' : 'Continue'}
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

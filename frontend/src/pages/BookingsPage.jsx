@@ -73,17 +73,18 @@ export default function BookingsPage() {
           </h1>
 
           {/* Tabs */}
-          {user && <div style={{ display: 'flex', gap: '0', borderBottom: 'none' }}>
+          {user && <div className="scroll-touch-x" style={{ display: 'flex', gap: '0', borderBottom: 'none' }}>
             {TABS.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 style={{
-                  padding: '12px 24px', background: 'none', border: 'none',
+                  padding: '12px 20px', background: 'none', border: 'none',
                   borderBottom: `3px solid ${activeTab === tab.key ? 'var(--accent-red)' : 'transparent'}`,
                   color: activeTab === tab.key ? '#fff' : 'var(--text-secondary)',
                   fontWeight: activeTab === tab.key ? '700' : '400',
-                  fontSize: '0.95rem', cursor: 'pointer', transition: 'all 0.2s'
+                  fontSize: '0.92rem', cursor: 'pointer', transition: 'all 0.2s',
+                  flexShrink: 0
                 }}
               >
                 {tab.label}
