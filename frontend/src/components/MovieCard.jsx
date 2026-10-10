@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Ticket } from 'lucide-react';
+import { Star, Ticket, Film } from 'lucide-react';
 
 export default function MovieCard({ movie }) {
   if (!movie) return null;
@@ -38,7 +38,7 @@ export default function MovieCard({ movie }) {
         }}
       >
         {/* Poster Image */}
-        <img
+        {movie.poster ? <img
           src={movie.poster}
           alt={movie.title}
           style={{
@@ -48,7 +48,7 @@ export default function MovieCard({ movie }) {
             display: 'block',
           }}
           loading="lazy"
-        />
+        /> : <div aria-label={`${movie.title} poster`} style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', padding: 18, textAlign: 'center', color: '#fff', background: 'radial-gradient(ellipse at 70% 20%,rgba(229,9,20,.35),transparent 52%),linear-gradient(145deg,#30232b,#101014)' }}><div><Film size={28} color="var(--accent-red)" style={{ margin: '0 auto 12px' }} /><strong style={{ fontSize: '1.08rem', lineHeight: 1.25 }}>{movie.title}</strong><div style={{ marginTop: 9, color: 'var(--text-secondary)', fontSize: '.72rem', letterSpacing: '.06em' }}>{movie.language} · {movie.genre?.[0] || 'CINEMA'}</div></div></div>}
 
         {/* Rating Badge */}
         {movie.rating > 0 && (
@@ -148,10 +148,14 @@ export default function MovieCard({ movie }) {
             }}
           >
             <span>{movie.language}</span>
-            <span>{movie.genre && movie.genre[0]}</span>
+              <span>{movie.genre && movie.genre[0]}</span>
+            </div>
           </div>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '10px', color: '#fff', fontSize: '0.8rem', fontWeight: 700 }}>
+            <Ticket size={15} color="var(--accent-red)" />
+            {movie.releaseType === 'COMING_SOON' ? 'View details' : 'Book Now'}
+          </span>
         </div>
-      </div>
     </Link>
   );
 }

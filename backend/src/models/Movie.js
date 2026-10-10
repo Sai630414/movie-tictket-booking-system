@@ -19,18 +19,20 @@ const movieSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    poster: {
-      type: String,
-      required: true,
-    },
-    backdrop: {
-      type: String,
-      required: true,
-    },
+    poster: { type: String, default: '' },
+    backdrop: { type: String, default: '' },
     trailerUrl: {
       type: String,
       default: '',
     },
+    trailer: {
+      provider: { type: String, enum: ['youtube'], default: undefined },
+      videoId: { type: String, default: undefined },
+      url: { type: String, default: undefined },
+      title: { type: String, default: undefined },
+      thumbnailUrl: { type: String, default: undefined },
+    },
+    metadataSourceUrl: { type: String, default: '' },
     genre: [{
       type: String,
       index: true,
@@ -42,7 +44,8 @@ const movieSchema = new mongoose.Schema(
     },
     duration: {
       type: Number, // in minutes
-      required: true,
+      required: false,
+      default: undefined,
     },
     rating: {
       type: Number,
@@ -63,7 +66,7 @@ const movieSchema = new mongoose.Schema(
     },
     releaseType: {
       type: String,
-      enum: ['NEW_RELEASE', 'RE_RELEASE', 'COMING_SOON'],
+      enum: ['NEW_RELEASE', 'RE_RELEASE', 'COMING_SOON', 'CATALOG'],
       default: 'NEW_RELEASE',
     },
     formats: [{

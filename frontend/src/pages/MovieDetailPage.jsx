@@ -3,20 +3,24 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Star, Clock, Globe, Users, Play, Ticket, ChevronRight, Calendar, MapPin } from 'lucide-react';
 import api from '../services/api.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
+import { useCity } from '../context/CityContext.jsx';
+import TrailerModal from '../components/TrailerModal.jsx';
 
 export default function MovieDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { selectedCity } = useCity();
   const [movie, setMovie] = useState(null);
   const [shows, setShows] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedDate, setSelectedDate] = useState('');
+  const [showTrailer, setShowTrailer] = useState(false);
 
   useEffect(() => {
     const fetchMovie = async () => {
       try {
-        const res = await api.get(`/movies/slug/${slug}`);
+        const res = await api.get(`/movies/slug/${slug}?city=${encodeURIComponent(selectedCity)}`);
         if (res.data?.success) {
           setMovie(res.data.data.movie);
           setShows(res.data.data.shows || []);
@@ -28,7 +32,7 @@ export default function MovieDetailPage() {
       }
     };
     fetchMovie();
-  }, [slug]);
+  }, [slug, selectedCity]);
 
   if (loading) return <LoadingSpinner message="Loading movie details..." />;
   if (!movie) return (
@@ -64,11 +68,11 @@ export default function MovieDetailPage() {
         overflow: 'hidden',
         backgroundColor: '#000'
       }}>
-        <img
+        {movie.backdrop ? <img
           src={movie.backdrop || movie.poster}
           alt={movie.title}
           style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }}
-        />
+        /> : <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 70% 25%, rgba(229,9,20,.3), transparent 55%), linear-gradient(145deg,#27232a,#09090b)' }} />}
         <div style={{
           position: 'absolute',
           inset: 0,
@@ -85,7 +89,7 @@ export default function MovieDetailPage() {
           gap: '32px'
         }}>
           {/* Poster */}
-          <img
+          {movie.poster ? <img
             src={movie.poster}
             alt={movie.title}
             style={{
@@ -97,7 +101,7 @@ export default function MovieDetailPage() {
               boxShadow: '0 20px 50px rgba(0,0,0,0.8)',
               flexShrink: 0
             }}
-          />
+          /> : <div aria-hidden="true" style={{ width: 180, height: 270, flexShrink: 0, borderRadius: 12, border: '2px solid rgba(255,255,255,.18)', display: 'grid', placeItems: 'center', padding: 14, textAlign: 'center', color: '#fff', fontSize: '1.05rem', fontWeight: 800, background: 'linear-gradient(145deg,#3a252d,#111116)' }}>{movie.title}</div>}
 
           <div style={{ flex: 1 }}>
             {/* Meta badges */}
@@ -129,14 +133,14 @@ export default function MovieDetailPage() {
               {movie.description}
             </p>
 
-            {movie.trailerUrl && (
-              <a
-                href={movie.trailerUrl} target="_blank" rel="noopener noreferrer"
+            {(movie.trailerUrl || movie.trailer?.url || movie.trailer?.videoId) && (
+              <button
+                type="button" onClick={() => setShowTrailer(true)}
                 className="btn-secondary"
                 style={{ display: 'inline-flex', marginTop: '20px', gap: '8px' }}
               >
                 <Play size={16} fill="#fff" /> Watch Trailer
-              </a>
+              </button>
             )}
           </div>
         </div>
@@ -301,6 +305,7 @@ export default function MovieDetailPage() {
           </div>
         </div>
       </div>
+      {showTrailer && <TrailerModal movie={movie} onClose={() => setShowTrailer(false)} />}
     </div>
   );
 }

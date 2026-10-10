@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase.js';
 import api from '../services/api.js';
 
@@ -9,7 +9,32 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
+    // Show the identity returned by Supabase immediately. The API profile is
+    // preferred below, but OAuth callback/profile pages should still render if
+    // the API is temporarily unavailable.
+    try {
+      const { data: { user: authUser }, error } = supabase
+        ? await supabase.auth.getUser()
+        : { data: { user: null }, error: null };
+      if (!error && authUser) {
+        const metadata = authUser.user_metadata || {};
+        setUser(previous => ({
+          ...previous,
+          supabaseUserId: authUser.id,
+          email: authUser.email || previous?.email || '',
+          name: metadata.name || metadata.full_name || metadata.display_name || previous?.name || '',
+          phone: authUser.phone || previous?.phone || '',
+          profileImage: metadata.avatar_url || metadata.picture || previous?.profileImage || '',
+          city: metadata.city || previous?.city || 'Vijayawada',
+          preferredLanguage: previous?.preferredLanguage || 'English',
+          role: previous?.role || 'user',
+        }));
+      }
+    } catch (err) {
+      console.warn('Could not read the Supabase user profile:', err.message);
+    }
+
     try {
       const res = await api.get('/auth/me');
       if (res.data?.success) {
@@ -18,7 +43,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.warn('Could not sync user profile from API server:', err.message);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -47,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => subscription?.unsubscribe();
-  }, []);
+  }, [fetchProfile]);
 
   const login = async (email, password) => {
     if (!supabase) return { success: false, error: 'Authentication is not configured. Set the Supabase frontend environment variables.' };
@@ -64,6 +89,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const sendPhoneOtp = async (phone, fullName = '') => {
+    if (!supabase) return { success: false, error: 'Authentication is not configured. Set the Supabase frontend environment variables.' };
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone,
+        options: { shouldCreateUser: true, data: { name: fullName.trim(), full_name: fullName.trim(), city: 'Vijayawada' } },
+      });
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: friendlyPhoneAuthError(err, 'send') };
+    }
+  };
+
+  const verifyPhoneOtp = async (phone, token) => {
+    if (!supabase) return { success: false, error: 'Authentication is not configured. Set the Supabase frontend environment variables.' };
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
+      if (error) throw error;
+      setSession(data.session);
+      await fetchProfile();
+      return { success: true, data };
+    } catch (err) {
+      return { success: false, error: friendlyPhoneAuthError(err, 'verify') };
+    }
+  };
+
   const register = async (email, password, name, phone, city) => {
     if (!supabase) return { success: false, error: 'Authentication is not configured. Set the Supabase frontend environment variables.' };
     setLoading(true);
@@ -73,6 +125,7 @@ export const AuthProvider = ({ children }) => {
         password,
         options: {
           data: { name, phone, city, role: 'user' },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -84,6 +137,20 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: err.message || 'Registration failed' };
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    if (!supabase) return { success: false, error: 'Authentication is not configured. Set the Supabase frontend environment variables.' };
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message || 'Google sign in failed.' };
     }
   };
 
@@ -108,7 +175,11 @@ export const AuthProvider = ({ children }) => {
         session,
         loading,
         login,
+        sendPhoneOtp,
+        verifyPhoneOtp,
         register,
+        loginWithGoogle,
+        refreshProfile: fetchProfile,
         logout,
         updateProfileState,
         isAdmin: user?.role === 'admin',
@@ -117,6 +188,16 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+const friendlyPhoneAuthError = (error, operation) => {
+  const message = String(error?.message || '').toLowerCase();
+  if (operation === 'verify' && /invalid.*otp|otp.*invalid|token.*invalid/.test(message)) return 'That code is incorrect. Check it and try again.';
+  if (operation === 'verify' && /expired|otp_expired/.test(message)) return 'That code has expired. Request a new code to continue.';
+  if (/too many|rate limit|security purposes|try again in/.test(message)) return 'Too many attempts. Wait a little while before trying again.';
+  if (/already registered|already been registered|user already exists/.test(message)) return 'This phone number is already registered. Choose Sign in with OTP.';
+  if (/fetch|network|timeout|load failed/.test(message)) return 'We could not reach the authentication service. Check your connection and try again.';
+  return error?.message || 'Phone verification failed. Please try again.';
 };
 
 export const useAuth = () => useContext(AuthContext);

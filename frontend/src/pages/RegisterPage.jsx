@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Film, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { CITIES } from '../context/CityContext.jsx';
 
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', phone: '', city: 'Mumbai' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', phone: '', city: 'Vijayawada' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -28,7 +29,7 @@ export default function RegisterPage() {
           setSuccessMessage('Check your email for a verification link, then sign in to continue.');
           return;
         }
-        navigate('/');
+        navigate('/profile', { replace: true });
       } else {
         setError(result?.error || 'Registration failed. Please try again.');
       }
@@ -39,7 +40,6 @@ export default function RegisterPage() {
     }
   };
 
-  const CITIES = ['Mumbai', 'Delhi-NCR', 'Bengaluru', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad'];
 
   return (
     <div style={{

@@ -12,8 +12,12 @@ import uploadRoutes from './uploadRoutes.js';
 import recommendationRoutes from './recommendationRoutes.js';
 import notificationRoutes from './notificationRoutes.js';
 import adminRoutes from './adminRoutes.js';
+import ticketRoutes from './ticketRoutes.js';
+import { globalSearch } from '../controllers/searchController.js';
 
 const router = express.Router();
+
+router.get('/search', globalSearch);
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -28,5 +32,6 @@ router.use('/uploads', uploadRoutes);
 router.use('/recommendations', recommendationRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/admin', adminRoutes);
+router.use('/tickets', ticketRoutes);
 
 export default router;

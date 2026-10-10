@@ -1,8 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Film, Calendar, MapPin, Search, Ticket, User, LogOut, ShieldAlert, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCity } from '../context/CityContext.jsx';
+import api from '../services/api.js';
+
+function SearchGroup({ title, children }) {
+  return <section aria-label={title} style={{ padding: '8px 4px' }}><h2 style={{ margin: '4px 8px 7px', color: 'var(--text-muted)', fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase' }}>{title}</h2>{children}</section>;
+}
+
+function SearchResult({ label, detail, onClick }) {
+  return <button type="button" onClick={onClick} style={{ display: 'block', width: '100%', padding: '10px 9px', textAlign: 'left', borderRadius: 8, color: '#fff', background: 'transparent' }} onMouseEnter={event => { event.currentTarget.style.background = 'rgba(255,255,255,.06)'; }} onMouseLeave={event => { event.currentTarget.style.background = 'transparent'; }}><strong style={{ display: 'block', fontSize: '.9rem' }}>{label}</strong><span style={{ display: 'block', marginTop: 3, color: 'var(--text-secondary)', fontSize: '.76rem' }}>{detail}</span></button>;
+}
 
 export default function Navbar() {
   const { user, logout, isAdmin } = useAuth();
@@ -14,11 +23,31 @@ export default function Navbar() {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState(null);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    const term = searchQuery.trim();
+    if (term.length < 2) { setSearchResults(null); return undefined; }
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setSearching(true);
+      try {
+        const response = await api.get(`/search?q=${encodeURIComponent(term)}`);
+        if (active && response.data?.success) setSearchResults(response.data.data);
+      } catch {
+        if (active) setSearchResults({ movies: [], events: [], venues: [], cities: [], unavailable: true });
+      } finally {
+        if (active) setSearching(false);
+      }
+    }, 250);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [searchQuery]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/movies?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/movies?search=${encodeURIComponent(searchQuery.trim())}&city=${encodeURIComponent(selectedCity)}`);
       setShowSearchModal(false);
     }
   };
@@ -146,7 +175,9 @@ export default function Navbar() {
                   top: '100%',
                   right: 0,
                   marginTop: '8px',
-                  width: '160px',
+                  width: '210px',
+                  maxHeight: '60vh',
+                  overflowY: 'auto',
                   backgroundColor: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
                   borderRadius: '8px',
@@ -322,7 +353,7 @@ export default function Navbar() {
           justifyContent: 'center',
           paddingTop: '100px'
         }}>
-          <div style={{ width: '100%', maxWidth: '640px', padding: '0 20px' }}>
+          <div style={{ width: '100%', maxWidth: '700px', padding: '0 20px' }}>
             <form onSubmit={handleSearchSubmit} style={{ position: 'relative' }}>
               <input
                 type="text"
@@ -365,6 +396,17 @@ export default function Navbar() {
                 ✕
               </button>
             </form>
+            {searchQuery.trim().length >= 2 && (
+              <div style={{ maxHeight: '65vh', overflowY: 'auto', marginTop: '14px', padding: '10px', border: '1px solid var(--border-color)', borderRadius: '16px', background: 'var(--bg-card)' }}>
+                {searching ? <p role="status" style={{ padding: '12px', color: 'var(--text-secondary)' }}>Searching CineVerse…</p> : null}
+                {!searching && searchResults?.unavailable ? <p style={{ padding: '12px', color: 'var(--text-secondary)' }}>Search is temporarily unavailable. You can still search the movie catalog.</p> : null}
+                {!searching && searchResults && !searchResults.unavailable && !searchResults.movies.length && !searchResults.events.length && !searchResults.venues.length && !searchResults.cities.length ? <p style={{ padding: '12px', color: 'var(--text-secondary)' }}>No movies, events, cinemas, or Andhra Pradesh cities matched “{searchQuery.trim()}”.</p> : null}
+                {searchResults?.movies?.length > 0 && <SearchGroup title="Movies & people">{searchResults.movies.map(movie => <SearchResult key={movie._id} label={movie.title} detail={`${movie.language} · ${movie.genre?.[0] || 'Movie'}`} onClick={() => { navigate(`/movies/${movie.slug}`); setShowSearchModal(false); }} />)}</SearchGroup>}
+                {searchResults?.venues?.length > 0 && <SearchGroup title="Cinemas">{searchResults.venues.map((venue, index) => <SearchResult key={`${venue.name}-${venue.city}-${index}`} label={venue.name} detail={`${venue.city} · ${venue.address || 'Cinema'}`} onClick={() => { changeCity(venue.city); navigate('/venues'); setShowSearchModal(false); }} />)}</SearchGroup>}
+                {searchResults?.cities?.length > 0 && <SearchGroup title="Andhra Pradesh cities">{searchResults.cities.map(city => <SearchResult key={city} label={city} detail="View cinemas and events" onClick={() => { changeCity(city); navigate('/venues'); setShowSearchModal(false); }} />)}</SearchGroup>}
+                {searchResults?.events?.length > 0 && <SearchGroup title="Events">{searchResults.events.map(event => <SearchResult key={event._id} label={event.name} detail={`${event.city} · ${event.category}`} onClick={() => { navigate(`/events/${event.slug}`); setShowSearchModal(false); }} />)}</SearchGroup>}
+              </div>
+            )}
           </div>
         </div>
       )}

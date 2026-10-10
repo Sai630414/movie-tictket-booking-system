@@ -17,6 +17,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage.jsx'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage.jsx'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage.jsx'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage.jsx'));
+const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage.jsx'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'));
 const BookingsPage = lazy(() => import('./pages/BookingsPage.jsx'));
 const BookingDetailPage = lazy(() => import('./pages/BookingDetailPage.jsx'));
@@ -30,6 +31,7 @@ const AdminVenuesPage = lazy(() => import('./pages/admin/AdminVenuesPage.jsx'));
 const AdminShowsPage = lazy(() => import('./pages/admin/AdminShowsPage.jsx'));
 const AdminBookingsPage = lazy(() => import('./pages/admin/AdminBookingsPage.jsx'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage.jsx'));
+const AdminTicketScannerPage = lazy(() => import('./pages/admin/AdminTicketScannerPage.jsx'));
 
 function SiteLayout({ children }) {
   return (
@@ -50,20 +52,23 @@ export default function App() {
           <Routes>
             <Route path="/" element={<SiteLayout><HomePage /></SiteLayout>} />
             <Route path="/movies" element={<SiteLayout><MoviesPage /></SiteLayout>} />
-            <Route path="/movie/:slug" element={<SiteLayout><MovieDetailPage /></SiteLayout>} />
+            <Route path="/movies/:slug" element={<SiteLayout><MovieDetailPage /></SiteLayout>} />
             <Route path="/events" element={<SiteLayout><EventsPage /></SiteLayout>} />
-            <Route path="/event/:slug" element={<SiteLayout><EventDetailPage /></SiteLayout>} />
+            <Route path="/events/:slug" element={<SiteLayout><EventDetailPage /></SiteLayout>} />
             <Route path="/venues" element={<SiteLayout><VenuesPage /></SiteLayout>} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/profile" element={<SiteLayout><ProfilePage /></SiteLayout>} />
             <Route path="/bookings" element={<SiteLayout><BookingsPage /></SiteLayout>} />
             <Route path="/bookings/:id" element={<SiteLayout><BookingDetailPage /></SiteLayout>} />
+            <Route path="/ticket/:bookingId" element={<SiteLayout><BookingDetailPage /></SiteLayout>} />
             <Route path="/booking/checkout" element={<SiteLayout><CheckoutPage /></SiteLayout>} />
             <Route path="/booking/success" element={<SiteLayout><BookingSuccessPage /></SiteLayout>} />
             <Route path="/seat-selection/:showId" element={<SiteLayout><SeatSelectionPage /></SiteLayout>} />
+            <Route path="/shows/:showId/seats" element={<SiteLayout><SeatSelectionPage /></SiteLayout>} />
 
             <Route path="/admin" element={<AdminDashboardPage />} />
             <Route path="/admin/movies" element={<AdminMoviesPage />} />
@@ -71,6 +76,7 @@ export default function App() {
             <Route path="/admin/venues" element={<AdminVenuesPage />} />
             <Route path="/admin/shows" element={<AdminShowsPage />} />
             <Route path="/admin/bookings" element={<AdminBookingsPage />} />
+            <Route path="/admin/ticket-scanner" element={<AdminTicketScannerPage />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
 
             <Route path="*" element={<SiteLayout><div style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', color: 'var(--text-secondary)' }}><div><h2 style={{ color: '#fff', marginBottom: '8px' }}>Page not found</h2><p>The page you requested does not exist.</p></div></div></SiteLayout>} />

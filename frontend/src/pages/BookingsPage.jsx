@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Ticket, Calendar, MapPin, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import api from '../services/api.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const TABS = [
   { key: '', label: 'All' },
@@ -19,6 +20,7 @@ const STATUS_COLORS = {
 };
 
 export default function BookingsPage() {
+  const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('');
@@ -39,7 +41,13 @@ export default function BookingsPage() {
     }
   };
 
-  useEffect(() => { fetchBookings(activeTab); }, [activeTab]);
+  useEffect(() => {
+    if (user) fetchBookings(activeTab);
+    else {
+      setBookings([]);
+      setLoading(false);
+    }
+  }, [activeTab, user]);
 
   const handleCancel = async (bookingId) => {
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
@@ -65,7 +73,7 @@ export default function BookingsPage() {
           </h1>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: '0', borderBottom: 'none' }}>
+          {user && <div style={{ display: 'flex', gap: '0', borderBottom: 'none' }}>
             {TABS.map(tab => (
               <button
                 key={tab.key}
@@ -81,12 +89,19 @@ export default function BookingsPage() {
                 {tab.label}
               </button>
             ))}
-          </div>
+          </div>}
         </div>
       </div>
 
       <div className="container" style={{ paddingTop: '32px', paddingBottom: '60px' }}>
-        {loading ? (
+        {!user ? (
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-secondary)' }}>
+            <Ticket size={60} color="var(--border-color)" style={{ margin: '0 auto 16px' }} />
+            <h3 style={{ color: '#fff', marginBottom: '8px' }}>Sign in to view your bookings</h3>
+            <p style={{ marginBottom: '24px' }}>Your tickets and booking history will appear here.</p>
+            <Link to="/login" className="btn-primary">Sign In</Link>
+          </div>
+        ) : loading ? (
           <LoadingSpinner message="Loading bookings..." />
         ) : bookings.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-secondary)' }}>

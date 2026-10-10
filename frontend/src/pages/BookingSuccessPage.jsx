@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { CheckCircle, Ticket, Download, QrCode, MapPin, Calendar, Clock, Mail, MessageSquare } from 'lucide-react';
+import { CheckCircle, Ticket, Home, CalendarDays, Clock3, MapPin, Download, Mail, MessageSquare } from 'lucide-react';
 import api from '../services/api.js';
+import { downloadElementAsJpg } from '../utils/downloadJpg.js';
+
+const dateLabel = (value) => value
+  ? new Date(value).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
+  : 'Date to be confirmed';
 
 export default function BookingSuccessPage() {
   const location = useLocation();
   const booking = location.state?.booking;
+  const [printing, setPrinting] = useState(true);
+  const ticketRef = useRef(null);
   const [sendingDelivery, setSendingDelivery] = useState(null);
   const [deliveryFeedback, setDeliveryFeedback] = useState('');
 
@@ -30,164 +37,87 @@ export default function BookingSuccessPage() {
     }
   };
 
+  useEffect(() => {
+    if (!booking) return undefined;
+    const timer = window.setTimeout(() => setPrinting(false), 2400);
+    return () => window.clearTimeout(timer);
+  }, [booking]);
+
   if (!booking) {
     return (
-      <div style={{ textAlign: 'center', padding: '100px 20px', color: 'var(--text-secondary)' }}>
-        <h2 style={{ color: '#fff', marginBottom: '12px' }}>Booking Confirmed!</h2>
-        <p>Check your bookings for details.</p>
-        <Link to="/bookings" className="btn-primary" style={{ display: 'inline-flex', marginTop: '20px' }}>My Bookings</Link>
-      </div>
+      <main className="cv-ticket-page">
+        <div className="container cv-ticket-empty">
+          <CheckCircle size={52} color="#22c55e" />
+          <h1>Payment complete</h1>
+          <p>Your ticket is available in My Bookings.</p>
+          <Link to="/bookings" className="btn-primary">My Bookings</Link>
+        </div>
+      </main>
     );
   }
 
+  const title = booking.movie?.title || booking.event?.name || 'CineVerse Ticket';
+  const showDate = booking.bookingType === 'EVENT' ? booking.event?.date : booking.show?.showDate;
+  const showTime = booking.bookingType === 'EVENT' ? booking.event?.startTime : booking.show?.startTime;
+  const seats = booking.seats?.map(seat => seat.seatId).filter(Boolean) || [];
+  const ticketLabels = booking.ticketItems?.map(item => `${item.categoryName} × ${item.quantity}`) || [];
+  const reservation = seats.length ? seats.join(', ') : ticketLabels.join(' · ');
+
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', padding: '60px 0' }}>
-      <div className="container" style={{ maxWidth: '600px' }}>
-        {/* Success Header */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{
-            width: '80px', height: '80px', borderRadius: '50%',
-            backgroundColor: 'rgba(34, 197, 94, 0.15)',
-            border: '2px solid rgba(34, 197, 94, 0.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 20px'
-          }}>
-            <CheckCircle size={44} color="#22c55e" />
-          </div>
-          <h1 style={{ fontSize: '2.2rem', color: '#fff', marginBottom: '8px' }}>Booking Confirmed!</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
-            Your tickets are booked successfully. We've sent the confirmation details to your email.
-          </p>
-        </div>
+    <main className="cv-ticket-page">
+      <div className="cv-ticket-glow" aria-hidden="true" />
+      <div className="container cv-ticket-container">
+        <header className="cv-payment-success" aria-live="polite">
+          <div className="cv-success-icon"><CheckCircle size={34} /></div>
+          <p className="cv-success-eyebrow">CINEVERSE · PAYMENT SUCCESSFUL</p>
+          <h1>{printing ? 'Your ticket is printing…' : 'Your night at the movies is set.'}</h1>
+          <p>Payment verified. Your booking is confirmed and the ticket is ready.</p>
+        </header>
 
-        {/* Digital Ticket Card */}
-        <div style={{
-          background: 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '20px',
-          overflow: 'hidden',
-          marginBottom: '24px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.6)'
-        }}>
-          {/* Ticket Header */}
-          <div style={{
-            background: 'linear-gradient(135deg, var(--accent-red) 0%, #b20710 100%)',
-            padding: '20px 24px',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-          }}>
-            <div>
-              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>CineVerse Digital Ticket</div>
-              <div style={{ color: '#fff', fontWeight: '800', fontSize: '1.1rem' }}>#{booking.bookingId}</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Ticket size={28} color="#fff" />
-            </div>
+        <section className={`cv-printer ${printing ? 'is-printing' : 'is-finished'}`} aria-label={printing ? 'Printing your ticket' : 'Your digital ticket'}>
+          <div className="cv-printer-ticket-slot" aria-hidden="true" />
+          <div className="cv-printer-face">
+            <div className="cv-printer-brand"><span className="cv-printer-light" /> CINEVERSE TICKET PRINTER</div>
+            <div className="cv-printer-display"><Ticket size={19} /><span>{printing ? 'PRINTING YOUR EXPERIENCE' : 'TICKET READY · ENJOY THE SHOW'}</span></div>
+            <div className="cv-printer-output" aria-hidden="true"><span /></div>
           </div>
 
-          {/* Dashed Separator */}
-          <div style={{ borderTop: '2px dashed rgba(255,255,255,0.1)', margin: '0 24px' }} />
-
-          <div style={{ padding: '24px' }}>
-            {/* Movie/Event Name */}
-            <h2 style={{ fontSize: '1.5rem', color: '#fff', marginBottom: '16px' }}>
-              {booking.movie?.title || booking.event?.name}
-            </h2>
-
-            {/* Details Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-              {booking.venue && (
-                <div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '4px' }}>Venue</div>
-                  <div style={{ color: '#fff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <MapPin size={13} color="var(--accent-red)" />
-                    {booking.venue?.name}
-                  </div>
-                </div>
-              )}
-              {booking.show?.showDate && (
-                <div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '4px' }}>Date</div>
-                  <div style={{ color: '#fff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Calendar size={13} color="var(--accent-red)" />
-                    {new Date(booking.show.showDate).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
-                  </div>
-                </div>
-              )}
-              {booking.show?.startTime && (
-                <div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '4px' }}>Show Time</div>
-                  <div style={{ color: '#fff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Clock size={13} color="var(--accent-red)" />
-                    {booking.show.startTime}
-                  </div>
-                </div>
-              )}
+          <article ref={ticketRef} className="cv-ticket-paper" aria-label={`${title} digital ticket`}>
+            <div className="cv-ticket-topline">
+              <div className="cv-ticket-logo"><span>▶</span><strong>CINEVERSE</strong></div>
+              <span className="cv-ticket-paid">PAID</span>
+            </div>
+            <p className="cv-ticket-kicker">YOUR CINEMA EXPERIENCE</p>
+            <h2>{title}</h2>
+            <div className="cv-ticket-venue"><MapPin size={15} /><span>{booking.venue?.name || 'Venue'} · {booking.venue?.city || booking.event?.city || 'Andhra Pradesh'}</span></div>
+            <div className="cv-ticket-rule" />
+            <div className="cv-ticket-facts">
+              <div><span><CalendarDays size={13} /> DATE</span><strong>{dateLabel(showDate)}</strong></div>
+              <div><span><Clock3 size={13} /> SHOW TIME</span><strong>{showTime || 'Time to be confirmed'}</strong></div>
+              {booking.show?.screen?.name && <div><span>SCREEN</span><strong>{booking.show.screen.name}</strong></div>}
+              <div><span>{seats.length ? 'SEATS' : 'TICKETS'}</span><strong>{reservation || 'See booking details'}</strong></div>
+            </div>
+            <div className="cv-ticket-rule" />
+            <div className="cv-ticket-meta">
+              <div><span>BOOKING ID</span><strong>{booking.bookingId}</strong></div>
+              <div><span>PAYMENT REFERENCE</span><strong>{booking.razorpayPaymentId || 'Verified by Razorpay'}</strong></div>
+            </div>
+            <div className="cv-ticket-bottom">
               <div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '4px' }}>Amount Paid</div>
-                <div style={{ color: 'var(--accent-gold)', fontSize: '1rem', fontWeight: '800' }}>₹{booking.totalAmount}</div>
+                <span className="cv-ticket-total-label">TOTAL PAID</span>
+                <strong className="cv-ticket-total">₹{Number(booking.totalAmount || 0).toLocaleString('en-IN')}</strong>
               </div>
+              {booking.qrCode ? <img className="cv-ticket-qr" src={booking.qrCode} alt="Secure CineVerse ticket QR code" /> : <div className="cv-ticket-qr-placeholder" aria-label="Ticket QR code is being generated" />}
             </div>
-
-            {/* Seats */}
-            {booking.seats?.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '8px' }}>Seats</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {booking.seats.map(s => (
-                    <span key={s.seatId} style={{
-                      padding: '5px 12px', backgroundColor: 'rgba(229,9,20,0.15)',
-                      border: '1px solid rgba(229,9,20,0.4)', borderRadius: '6px',
-                      color: 'var(--accent-red)', fontWeight: '700', fontSize: '0.9rem'
-                    }}>{s.seatId}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Tickets */}
-            {booking.ticketItems?.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '8px' }}>Tickets</div>
-                {booking.ticketItems.map(item => (
-                  <div key={item.categoryName} style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', marginBottom: '4px', fontSize: '0.9rem' }}>
-                    <span>{item.categoryName} × {item.quantity}</span>
-                    <span>₹{item.price * item.quantity}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Dashed separator before QR */}
-            <div style={{ borderTop: '2px dashed rgba(255,255,255,0.1)', margin: '16px -24px', padding: '0 24px' }} />
-
-            {/* QR Code */}
-            {booking.qrCode ? (
-              <div style={{ textAlign: 'center', paddingTop: '16px' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Scan QR at Venue</p>
-                <img
-                  src={booking.qrCode}
-                  alt="Booking QR Code"
-                  style={{
-                    width: '160px', height: '160px',
-                    border: '8px solid #fff',
-                    borderRadius: '12px',
-                    backgroundColor: '#fff'
-                  }}
-                />
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', paddingTop: '16px' }}>
-                <QrCode size={80} color="var(--text-muted)" style={{ margin: '0 auto' }} />
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '8px' }}>QR Code generating...</p>
-              </div>
-            )}
-          </div>
-        </div>
+            <p className="cv-ticket-footnote">This QR code contains a secure ticket identifier. Keep it ready at the venue entrance.</p>
+          </article>
+          <div className="cv-printer-base" aria-hidden="true"><span /><span /><span /></div>
+        </section>
 
         {/* Delivery Feedback */}
         {deliveryFeedback && (
           <div style={{
-            marginBottom: '20px', padding: '12px 16px', borderRadius: '10px',
+            margin: '20px auto', maxWidth: '520px', padding: '12px 16px', borderRadius: '10px',
             backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)',
             color: '#86efac', fontSize: '0.88rem', textAlign: 'center', wordBreak: 'break-all'
           }}>
@@ -196,13 +126,14 @@ export default function BookingSuccessPage() {
         )}
 
         {/* Quick Ticket Delivery Options */}
-        <div className="glass-card" style={{ marginBottom: '24px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div className="glass-card" style={{ maxWidth: '520px', margin: '0 auto 24px auto', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ color: '#fff', fontWeight: '600', fontSize: '0.92rem' }}>Send copy of ticket</div>
             <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Receive instant QR pass to your email or WhatsApp</div>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
+              type="button"
               onClick={() => handleSendTicket('email')}
               disabled={sendingDelivery !== null}
               className="btn-outline"
@@ -215,6 +146,7 @@ export default function BookingSuccessPage() {
               {sendingDelivery === 'email' ? 'Sending...' : 'Email'}
             </button>
             <button
+              type="button"
               onClick={() => handleSendTicket('whatsapp')}
               disabled={sendingDelivery !== null}
               className="btn-outline"
@@ -229,24 +161,17 @@ export default function BookingSuccessPage() {
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <Link
-            to={`/bookings/${booking._id}`}
-            className="btn-primary"
-            style={{ flex: 1, justifyContent: 'center', minWidth: '160px' }}
-          >
-            View Full Ticket
-          </Link>
-          <Link
-            to="/bookings"
+        <nav className="cv-ticket-actions" aria-label="Ticket actions">
+          <Link to={`/bookings/${booking._id || booking.bookingId}`} className="btn-primary"><Ticket size={17} /> View Ticket</Link>
+          <button
+            type="button"
             className="btn-outline"
-            style={{ flex: 1, justifyContent: 'center', minWidth: '160px', display: 'flex', alignItems: 'center' }}
-          >
-            My Bookings
-          </Link>
-        </div>
+            onClick={() => downloadElementAsJpg(ticketRef.current, `CineVerse-${booking.bookingId || 'ticket'}.jpg`).catch(error => window.alert(error.message))}
+          ><Download size={17} /> Download JPG</button>
+          <Link to="/" className="btn-outline"><Home size={17} /> Back to Home</Link>
+          <Link to="/bookings" className="btn-outline">My Bookings</Link>
+        </nav>
       </div>
-    </div>
+    </main>
   );
 }

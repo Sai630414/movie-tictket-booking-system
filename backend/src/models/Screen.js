@@ -11,7 +11,7 @@ const seatSchema = new mongoose.Schema({
   },
   seatType: {
     type: String,
-    enum: ['REGULAR', 'PREMIUM', 'VIP', 'RECLINER'],
+    enum: ['REGULAR', 'STANDARD', 'PREMIUM', 'VIP', 'RECLINER'],
     default: 'REGULAR',
   },
   priceMultiplier: {
@@ -27,6 +27,7 @@ const seatSchema = new mongoose.Schema({
 
 const screenSchema = new mongoose.Schema(
   {
+    seedKey: { type: String, default: undefined, unique: true, sparse: true },
     venue: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Venue',
@@ -37,6 +38,8 @@ const screenSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    format: { type: String, default: '2D' },
+    audio: { type: String, default: '' },
     rows: {
       type: Number,
       required: true,
