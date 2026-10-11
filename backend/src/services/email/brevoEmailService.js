@@ -30,12 +30,14 @@ const populatedBooking = (id) => Booking.findById(id)
   .populate('user movie event venue')
   .populate({ path: 'show', populate: { path: 'screen' } });
 
-const makeAttachment = (booking) => {
-  if (!booking.qrCode?.startsWith('data:image/png;base64,')) return [];
+export const makeQrAttachment = (booking) => {
+  const match = /^data:image\/png;base64,([A-Za-z0-9+/]+={0,2})$/.exec(booking.qrCode || '');
+  if (!match) return [];
+  const png = Buffer.from(match[1], 'base64');
+  if (!png.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return [];
   return [{
     name: `cineverse-ticket-${booking.bookingId}.png`,
-    content: booking.qrCode.slice('data:image/png;base64,'.length),
-    contentId: 'cineverse-ticket-qr',
+    content: png.toString('base64'),
   }];
 };
 
@@ -60,13 +62,19 @@ const sendViaBrevo = async ({ to, subject, html, attachment, config }) => {
       return { success: false };
     }
     const result = await response.json().catch(() => ({}));
-    return { success: true, messageId: result.messageId || '' };
+    return { success: true, messageId: result.messageId || '', providerStatus: 'ACCEPTED' };
   } catch (error) {
     console.error('[Brevo email delivery failed]', { reason: error.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK_ERROR' });
     return { success: false };
   } finally {
     clearTimeout(timeout);
   }
+};
+
+export const sendBrevoEmail = async ({ to, subject, html, attachment = [] }) => {
+  const config = getEmailConfig();
+  if (!config.apiKey || !config.senderEmail) return { success: false, reason: 'EMAIL_NOT_CONFIGURED' };
+  return sendViaBrevo({ to, subject, html, attachment, config });
 };
 
 const sendBookingEmail = async (bookingId, kind, { retry = false } = {}) => {
@@ -89,7 +97,12 @@ const sendBookingEmail = async (bookingId, kind, { retry = false } = {}) => {
   if (!claimed) return { success: true, status: booking[statusField] };
 
   const html = renderBookingEmail(booking, { kind, frontendUrl: config.frontendUrl });
-  const attachment = kind === 'confirmation' ? makeAttachment(booking) : [];
+  const attachment = kind === 'confirmation' ? makeQrAttachment(booking) : [];
+  if (kind === 'confirmation' && attachment.length === 0) {
+    await Booking.updateOne({ _id: bookingId, [statusField]: 'SENDING' }, { $set: { [statusField]: 'FAILED' } });
+    console.error('[Brevo email delivery failed]', { bookingId: String(bookingId), reason: 'QR_PNG_MISSING_OR_INVALID' });
+    return { success: false, status: 'FAILED', reason: 'QR_PNG_MISSING_OR_INVALID' };
+  }
   const result = await sendViaBrevo({
     to: booking.user.email,
     subject: definition.subject(booking),
@@ -107,7 +120,7 @@ const sendBookingEmail = async (bookingId, kind, { retry = false } = {}) => {
     { _id: bookingId, [statusField]: 'SENDING' },
     { $set: { [statusField]: 'SENT', [definition.sentAt]: new Date(), [definition.messageId]: result.messageId } }
   );
-  return { success: true, status: 'SENT', messageId: result.messageId };
+  return { success: true, status: 'SENT', providerStatus: result.providerStatus, messageId: result.messageId };
 };
 
 export const sendBookingConfirmation = (bookingId, options) => sendBookingEmail(bookingId, 'confirmation', options);

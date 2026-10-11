@@ -24,11 +24,9 @@ export default function BookingSuccessPage() {
       const res = await api.post(`/bookings/${booking._id}/send-ticket`, { channels: [channel] });
       if (res.data?.success) {
         const info = res.data.data?.[channel];
-        if (info?.previewUrl) {
-          setDeliveryFeedback(`Email dispatched! (Preview: ${info.previewUrl})`);
-        } else {
-          setDeliveryFeedback(`Ticket sent via ${channel.toUpperCase()} successfully!`);
-        }
+        if (info?.success) setDeliveryFeedback(info.alreadySent ? `This ticket was already sent via ${channel.toUpperCase()}.` : `${channel.toUpperCase()} delivery accepted by the provider.`);
+        else if (info?.skipped && info.reason === 'WHATSAPP_OPT_IN_REQUIRED') setDeliveryFeedback('Enable WhatsApp ticket updates in your profile before sending.');
+        else setDeliveryFeedback(info?.error || 'The delivery provider did not accept this message.');
       }
     } catch (err) {
       setDeliveryFeedback(`Delivery failed: ${err.response?.data?.message || err.message}`);

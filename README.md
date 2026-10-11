@@ -11,7 +11,8 @@ CineVerse is a React and Express application for discovering movies and events, 
 - Server-calculated pricing, coupons, taxes, and fees
 - Razorpay order creation, Checkout, server-side signature and capture verification, plus an optional webhook endpoint for later activation
 - Opaque, unique QR ticket tokens with admin-only server verification and one-time scan acceptance
-- Booking confirmation, cancellation, and completed-refund emails through Brevo; email delivery state is tracked separately from payment/booking state
+- Booking confirmation, cancellation, refund, and ticket resend emails through Brevo; email delivery state is tracked separately from payment/booking state
+- Booking ticket WhatsApp and SMS delivery through Twilio
 - Responsive React UI using the existing CineVerse dark theme
 
 ## Stack and folders
@@ -54,7 +55,7 @@ The frontend runs at `http://localhost:5173`, the API at `http://localhost:5000`
 
 ## Environment variables
 
-Backend settings are documented in `backend/.env.example`. Set `SUPABASE_URL` and the server-only `SUPABASE_SECRET_KEY` (the previous `SUPABASE_SERVICE_ROLE_KEY` name remains supported) to verify Auth sessions. Razorpay checkout requires `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`; webhook setup is not needed for checkout confirmation. Set `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and `BREVO_SENDER_NAME` for transactional email. The sender address/domain must be verified in Brevo. R2 settings are optional unless image uploads are enabled.
+Backend settings are documented in `backend/.env.example`. Set `SUPABASE_URL` and the server-only `SUPABASE_SECRET_KEY` (the previous `SUPABASE_SERVICE_ROLE_KEY` name remains supported) to verify Auth sessions. Razorpay checkout requires `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`; webhook setup is not needed for checkout confirmation. Set `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and `BREVO_SENDER_NAME` for all backend transactional email. Verify the sender address/domain in Brevo. Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`, `TWILIO_WHATSAPP_NUMBER`, `TWILIO_WHATSAPP_CONTENT_SID`, and `TWILIO_WHATSAPP_TEMPLATE_FIELDS` for booking SMS and WhatsApp; use E.164 phone numbers and an enabled Twilio WhatsApp sender. WhatsApp requires an approved Content Template for business-initiated booking notifications. R2 settings are optional unless image uploads are enabled.
 
 Frontend settings are documented in `frontend/.env.example`. Use `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (the legacy `VITE_SUPABASE_ANON_KEY` name is still accepted). Only the publishable/anon key belongs in the browser. Never put Supabase secret/service role, Razorpay secret, Brevo API key, database, or webhook credentials in `VITE_*` variables.
 
@@ -68,9 +69,14 @@ Frontend settings are documented in `frontend/.env.example`. Use `VITE_SUPABASE_
 ### Brevo setup and delivery
 
 - Create a Brevo API key and verify the sender email/domain in Brevo.
+- Configure Supabase Auth's custom SMTP settings with Brevo's SMTP relay so signup confirmation and password reset messages also come from Brevo. Supabase Auth generates those emails; the backend handles booking and ticket emails.
+- Configure Supabase Auth phone SMS with Twilio for onboarding and login OTPs. The app requests/verifies OTPs through Supabase Auth; booking ticket SMS/WhatsApp messages go through the backend Twilio integration.
+- Set `TWILIO_WHATSAPP_NUMBER` to the exact Twilio sender in `whatsapp:+<country_code><number>` form and set `TWILIO_WHATSAPP_CONTENT_SID` to a Content SID available to that account. Set `TWILIO_WHATSAPP_TEMPLATE_FIELDS` to the comma-separated placeholder values in the exact order required by that template, choosing from `bookingId,title,venue,dateTime,items,amount,ticketUrl`. Do not reuse a production SID or assume a Sandbox SID/variable layout; copy the supported template and SID from the same Twilio Console account.
+- To test with the WhatsApp Sandbox, open Twilio Console > Messaging > Try it out > Send a WhatsApp message, join the Sandbox from the recipient phone using the displayed join phrase, and use the Sandbox sender and one of its supported Content SIDs/variable layouts. In the app, enable WhatsApp ticket updates in My Profile first. The ticket button sends the approved template with the authenticated user's saved number; retries do not send again after Twilio accepts the request.
+- Twilio trial SMS accounts reject custom message bodies. For a trial, set `TWILIO_SMS_TRIAL_TEMPLATE=sms_order_confirmation` (or another supported Twilio template name); trial messages are generic and can only go to verified recipients. Clear this setting after upgrading to send the full booking details.
 - Set `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and `BREVO_SENDER_NAME` only in `backend/.env` or the backend deployment secret store. Set `FRONTEND_URL` to the exact deployed CineVerse origin so ticket links point back to the app.
 - Booking confirmation mail is attempted only after server-side Razorpay signature and captured-payment checks have confirmed the booking and persisted its QR ticket. Cancellation mail follows persisted cancellation. A refund mail is sent only after a valid Razorpay refund webhook event; webhooks remain optional for the normal checkout flow.
-- Email failures update the relevant email delivery state and safe server logs; they do not change a confirmed booking or captured payment. Email sending can be retried through the backend email service without issuing another booking confirmation as part of the payment flow.
+- Confirmation email includes the QR as a named PNG attachment. The QR is an opaque ticket token generated only after server-side payment confirmation; Brevo's API accepts base64 attachments but does not support CID inline images. Email delivery state tracks Brevo acceptance, not final inbox delivery. Failures update the relevant state and safe server logs without changing the booking; a retry uses the booking's email idempotency claim.
 
 ### Ticket scanning
 

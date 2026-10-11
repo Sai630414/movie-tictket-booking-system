@@ -20,6 +20,8 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    whatsappOptIn: { type: Boolean, default: false },
+    whatsappOptInAt: { type: Date, default: null },
     dateOfBirth: {
       type: Date,
       default: null,

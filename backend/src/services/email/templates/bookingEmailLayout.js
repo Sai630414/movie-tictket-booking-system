@@ -39,7 +39,7 @@ export const renderBookingEmail = (booking, { kind, frontendUrl }) => {
   const imageBlock = poster ? `<img src="${poster}" width="100%" alt="${escapeHtml(title)}" style="display:block;max-height:240px;object-fit:cover;border-radius:12px 12px 0 0">` : '';
   const ticketPriceBlock = ticketPrice ? `<tr><td colspan="2" style="padding:8px 0;color:#a3a3a3;font-size:13px;line-height:1.7">${ticketPrice}</td></tr>` : '';
   const qrBlock = kind === 'confirmation' && booking.qrCode
-    ? '<tr><td colspan="2" align="center" style="padding:24px 0 8px"><img src="cid:cineverse-ticket-qr" width="180" height="180" alt="CineVerse ticket QR code" style="display:block;background:#fff;padding:10px;border-radius:8px"><p style="margin:10px 0 0;color:#a3a3a3;font-size:12px">Show this QR code at the venue entrance.</p></td></tr>'
+    ? '<tr><td colspan="2" align="center" style="padding:24px 0 8px"><p style="margin:0;color:#a3a3a3;font-size:13px">Your ticket QR code is attached as a PNG. Show it at the venue entrance.</p></td></tr>'
     : '';
   const paymentLine = kind === 'refund'
     ? row('Refund amount', money(booking.totalAmount))

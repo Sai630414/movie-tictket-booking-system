@@ -259,8 +259,8 @@ export const confirmMovieBooking = async (bookingId, razorpayOrderId, razorpayPa
 
   await sendBookingConfirmationSafely(booking._id);
 
-  // Asynchronous Ticket Delivery via Email and WhatsApp/SMS
-  sendTicketDelivery(booking, { channels: ['email', 'whatsapp'] }).catch((err) => {
+  // Send booking delivery channels after payment confirmation.
+  sendTicketDelivery(booking, { channels: ['whatsapp', 'sms'] }).catch((err) => {
     console.warn('[Ticket Delivery Async Warning]:', err.message);
   });
 

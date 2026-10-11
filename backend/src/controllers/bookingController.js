@@ -3,6 +3,7 @@ import { Show } from '../models/Show.js';
 import { Event } from '../models/Event.js';
 import { cancelBooking, ensureSecureTicketQr } from '../services/bookingService.js';
 import { sendTicketDelivery } from '../services/deliveryService.js';
+import { sendBookingConfirmation } from '../services/email/brevoEmailService.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
 export const createBooking = async (req, res, next) => {
@@ -299,7 +300,10 @@ export const cancelUserBooking = async (req, res, next) => {
 export const sendTicketNotification = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { channels = ['email'], email, phone } = req.body;
+    const { channels = ['email'] } = req.body;
+    if (!Array.isArray(channels) || channels.some((channel) => !['email', 'whatsapp', 'sms'].includes(channel))) {
+      return errorResponse(res, 'Invalid ticket delivery channel', 'INVALID_CHANNEL', 400);
+    }
 
     let query = { _id: id };
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
@@ -315,13 +319,20 @@ export const sendTicketNotification = async (req, res, next) => {
       return errorResponse(res, 'Unauthorized access to booking', 'FORBIDDEN', 403);
     }
 
-    const deliveryResults = await sendTicketDelivery(booking, {
-      channels,
-      email: email || req.user.email,
-      phone: phone || req.user.phone,
-    });
+    if (booking.bookingStatus !== 'CONFIRMED' || booking.paymentStatus !== 'PAID') {
+      return errorResponse(res, 'Ticket delivery is available after payment confirmation', 'BOOKING_NOT_CONFIRMED', 409);
+    }
 
-    return successResponse(res, deliveryResults, 'Ticket delivery dispatched successfully');
+    const deliveryResults = {};
+    if (channels.includes('email')) {
+      deliveryResults.email = await sendBookingConfirmation(booking._id, { retry: true });
+    }
+    const messagingChannels = channels.filter((channel) => channel !== 'email');
+    if (messagingChannels.length) {
+      Object.assign(deliveryResults, await sendTicketDelivery(booking, { channels: messagingChannels }));
+    }
+
+    return successResponse(res, deliveryResults, 'Ticket delivery request processed');
   } catch (err) {
     next(err);
   }

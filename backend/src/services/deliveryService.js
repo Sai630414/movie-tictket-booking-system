@@ -1,4 +1,12 @@
-import nodemailer from 'nodemailer';
+import { sendBookingConfirmation } from './email/brevoEmailService.js';
+import { Booking } from '../models/Booking.js';
+
+const isE164 = (phone) => /^\+[1-9]\d{7,14}$/.test(String(phone || '').trim());
+
+const recordProcessingFailure = (channel, error, results) => {
+  console.error('[Ticket delivery processing failed]', { channel, reason: error?.name || 'DELIVERY_ERROR' });
+  results[channel] = { success: false, channel, error: 'Notification delivery could not be processed' };
+};
 
 /**
  * Format human-readable ticket message for SMS and WhatsApp
@@ -179,86 +187,14 @@ export const generateTicketEmailHtml = (booking) => {
 };
 
 /**
- * Configure or create Nodemailer transporter
- */
-const getMailTransporter = async () => {
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    return nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
-
-  // Create Ethereal test account if in non-production/unconfigured environment
-  try {
-    const testAccount = await nodemailer.createTestAccount();
-    return nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    });
-  } catch (err) {
-    return null;
-  }
-};
-
-/**
  * Send Ticket via Email
  */
-export const sendTicketEmail = async (booking, recipientEmail) => {
-  if (!recipientEmail) {
+export const sendTicketEmail = async (booking) => {
+  if (!booking.user?.email) {
     return { success: false, channel: 'email', error: 'No recipient email provided' };
   }
-
-  const title = booking.movie?.title || booking.event?.name || 'Ticket';
-  const htmlContent = generateTicketEmailHtml(booking);
-  const fromAddress = process.env.EMAIL_FROM || '"CineVerse" <tickets@cineverse.com>';
-
-  const transporter = await getMailTransporter();
-  if (!transporter) {
-    console.log(`[SIMULATED EMAIL] To: ${recipientEmail} | Subject: Your CineVerse Ticket for ${title} (#${booking.bookingId})`);
-    return {
-      success: true,
-      channel: 'email',
-      simulated: true,
-      recipient: recipientEmail,
-      message: 'Simulated email delivery (SMTP not configured)',
-    };
-  }
-
-  try {
-    const info = await transporter.sendMail({
-      from: fromAddress,
-      to: recipientEmail,
-      subject: `🎟️ Your CineVerse Ticket: ${title} (#${booking.bookingId})`,
-      html: htmlContent,
-    });
-
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`[EMAIL PREVIEW URL]: ${previewUrl}`);
-    }
-
-    return {
-      success: true,
-      channel: 'email',
-      messageId: info.messageId,
-      previewUrl: previewUrl || null,
-      recipient: recipientEmail,
-    };
-  } catch (err) {
-    console.error('[Send Email Error]:', err.message);
-    return { success: false, channel: 'email', error: err.message };
-  }
+  const result = await sendBookingConfirmation(booking._id, { retry: true });
+  return { ...result, channel: 'email', recipient: booking.user.email };
 };
 
 /**
@@ -268,19 +204,57 @@ export const sendTicketWhatsApp = async (booking, recipientPhone) => {
   if (!recipientPhone) {
     return { success: false, channel: 'whatsapp', error: 'No recipient phone number provided' };
   }
+  if (!isE164(recipientPhone)) return { success: false, channel: 'whatsapp', error: 'Recipient phone number must use E.164 format' };
 
   const messageText = formatTicketMessage(booking);
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const fromWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER;
+  const contentSid = process.env.TWILIO_WHATSAPP_CONTENT_SID;
+  const templateFields = (process.env.TWILIO_WHATSAPP_TEMPLATE_FIELDS || '').split(',').map((field) => field.trim()).filter(Boolean);
 
-  if (accountSid && authToken && fromWhatsAppNumber) {
+  if (accountSid && authToken && fromWhatsAppNumber && !contentSid) {
+    return {
+      success: false,
+      channel: 'whatsapp',
+      error: 'TWILIO_WHATSAPP_CONTENT_SID is required for booking notifications. Configure an approved WhatsApp Content Template in Twilio.',
+    };
+  }
+
+  if (accountSid && authToken && fromWhatsAppNumber && contentSid) {
     try {
       const authHeader = 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+      const title = booking.movie?.title || booking.event?.name || 'Booking';
+      const venueName = booking.venue?.name || 'Cinema Venue';
+      const date = booking.show?.showDate
+        ? new Date(booking.show.showDate).toLocaleDateString('en-IN', { dateStyle: 'medium' })
+        : booking.event?.date
+          ? new Date(booking.event.date).toLocaleDateString('en-IN', { dateStyle: 'medium' })
+          : 'Scheduled Date';
+      const time = booking.show?.startTime || booking.event?.startTime || '';
+      const seatsOrTickets = booking.seats?.length
+        ? `Seats: ${booking.seats.map((seat) => seat.seatId).join(', ')}`
+        : (booking.ticketItems || []).map((ticket) => `${ticket.categoryName} x ${ticket.quantity}`).join(', ');
+      const ticketUrl = `${(process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '')}/bookings/${encodeURIComponent(booking.bookingId || booking._id)}`;
+      const templateValues = {
+        bookingId: booking.bookingId || String(booking._id),
+        title,
+        venue: venueName,
+        dateTime: `${date}${time ? ` at ${time}` : ''}`,
+        items: seatsOrTickets || 'Ticket details in your digital ticket',
+        amount: `INR ${booking.totalAmount}`,
+        ticketUrl,
+      };
+      const unsupportedField = templateFields.find((field) => !Object.hasOwn(templateValues, field));
+      if (unsupportedField) {
+        return { success: false, channel: 'whatsapp', error: 'TWILIO_WHATSAPP_TEMPLATE_FIELDS contains an unsupported field', code: 'INVALID_TEMPLATE_FIELDS' };
+      }
+      const contentVariables = Object.fromEntries(templateFields.map((field, index) => [String(index + 1), templateValues[field]]));
       const params = new URLSearchParams({
-        From: `whatsapp:${fromWhatsAppNumber}`,
+        From: fromWhatsAppNumber.startsWith('whatsapp:') ? fromWhatsAppNumber : `whatsapp:${fromWhatsAppNumber}`,
         To: `whatsapp:${recipientPhone}`,
-        Body: messageText,
+        ContentSid: contentSid,
+        ...(templateFields.length ? { ContentVariables: JSON.stringify(contentVariables) } : {}),
       });
 
       const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
@@ -294,33 +268,32 @@ export const sendTicketWhatsApp = async (booking, recipientPhone) => {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || 'Twilio WhatsApp dispatch failed');
+        throw Object.assign(new Error('Twilio WhatsApp dispatch failed'), { code: data.code, status: response.status });
       }
 
       return {
         success: true,
         channel: 'whatsapp',
         sid: data.sid,
+        status: data.status || 'queued',
         recipient: recipientPhone,
       };
     } catch (err) {
-      console.error('[Twilio WhatsApp Error]:', err.message);
-      return { success: false, channel: 'whatsapp', error: err.message };
+      console.error('[Twilio WhatsApp Error]', { code: err.code || 'TWILIO_REQUEST_FAILED', status: err.status || 0 });
+      return { success: false, channel: 'whatsapp', error: 'Twilio could not accept the WhatsApp message', code: err.code || 'TWILIO_REQUEST_FAILED' };
     }
   }
 
   // Simulation mode
-  console.log(`\n=================== [SIMULATED WHATSAPP MESSAGE] ===================`);
-  console.log(`Recipient: ${recipientPhone}`);
-  console.log(messageText);
-  console.log(`====================================================================\n`);
+  console.info('[Twilio WhatsApp not configured]', { simulated: true });
 
   return {
-    success: true,
+    success: false,
     channel: 'whatsapp',
     simulated: true,
     recipient: recipientPhone,
-    message: 'Simulated WhatsApp message logged to console',
+    error: 'Twilio credentials or WhatsApp sender are not configured',
+    message: 'No provider message was sent',
   };
 };
 
@@ -331,11 +304,13 @@ export const sendTicketSMS = async (booking, recipientPhone) => {
   if (!recipientPhone) {
     return { success: false, channel: 'sms', error: 'No recipient phone number provided' };
   }
+  if (!isE164(recipientPhone)) return { success: false, channel: 'sms', error: 'Recipient phone number must use E.164 format' };
 
   const messageText = formatTicketMessage(booking);
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const fromPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+  const trialTemplate = process.env.TWILIO_SMS_TRIAL_TEMPLATE;
 
   if (accountSid && authToken && fromPhoneNumber) {
     try {
@@ -343,7 +318,8 @@ export const sendTicketSMS = async (booking, recipientPhone) => {
       const params = new URLSearchParams({
         From: fromPhoneNumber,
         To: recipientPhone,
-        Body: messageText,
+        // Trial accounts accept only Twilio's predefined template names as Body.
+        Body: trialTemplate || messageText,
       });
 
       const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
@@ -357,33 +333,32 @@ export const sendTicketSMS = async (booking, recipientPhone) => {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || 'Twilio SMS dispatch failed');
+        throw Object.assign(new Error('Twilio SMS dispatch failed'), { code: data.code, status: response.status });
       }
 
       return {
         success: true,
         channel: 'sms',
         sid: data.sid,
+        status: data.status || 'queued',
         recipient: recipientPhone,
       };
     } catch (err) {
-      console.error('[Twilio SMS Error]:', err.message);
-      return { success: false, channel: 'sms', error: err.message };
+      console.error('[Twilio SMS Error]', { code: err.code || 'TWILIO_REQUEST_FAILED', status: err.status || 0 });
+      return { success: false, channel: 'sms', error: 'Twilio could not accept the SMS message', code: err.code || 'TWILIO_REQUEST_FAILED' };
     }
   }
 
   // Simulation mode
-  console.log(`\n=================== [SIMULATED SMS MESSAGE] ===================`);
-  console.log(`Recipient: ${recipientPhone}`);
-  console.log(messageText);
-  console.log(`===============================================================\n`);
+  console.info('[Twilio SMS not configured]', { simulated: true });
 
   return {
-    success: true,
+    success: false,
     channel: 'sms',
     simulated: true,
     recipient: recipientPhone,
-    message: 'Simulated SMS message logged to console',
+    error: 'Twilio credentials or SMS sender are not configured',
+    message: 'No provider message was sent',
   };
 };
 
@@ -392,34 +367,67 @@ export const sendTicketSMS = async (booking, recipientPhone) => {
  */
 export const sendTicketDelivery = async (booking, options = {}) => {
   const channels = options.channels || ['email'];
-  const recipientEmail = options.email || booking.user?.email;
-  const recipientPhone = options.phone || booking.user?.phone;
+  // Recipient identity always comes from the persisted booking owner, never request fields.
+  const recipientPhone = booking.user?.phone;
 
   const results = {};
   const promises = [];
 
   if (channels.includes('email') || channels.includes('all')) {
     promises.push(
-      sendTicketEmail(booking, recipientEmail).then((res) => {
+      sendTicketEmail(booking).then((res) => {
         results.email = res;
-      })
+      }).catch((error) => recordProcessingFailure('email', error, results))
     );
   }
 
   if (channels.includes('whatsapp') || channels.includes('all')) {
-    promises.push(
-      sendTicketWhatsApp(booking, recipientPhone).then((res) => {
-        results.whatsapp = res;
-      })
-    );
+    promises.push((async () => {
+      const stateField = 'confirmationWhatsAppStatus';
+      if (!booking.user?.whatsappOptIn) {
+        await Booking.updateOne({ _id: booking._id, [stateField]: { $in: ['PENDING', 'FAILED'] } }, { $set: { [stateField]: 'SKIPPED' } });
+        results.whatsapp = { success: false, channel: 'whatsapp', skipped: true, reason: 'WHATSAPP_OPT_IN_REQUIRED' };
+        return;
+      }
+      const claim = await Booking.findOneAndUpdate(
+        { _id: booking._id, bookingStatus: 'CONFIRMED', paymentStatus: 'PAID', [stateField]: { $in: ['PENDING', 'FAILED', 'SKIPPED'] } },
+        { $set: { [stateField]: 'SENDING' } },
+        { new: true }
+      );
+      if (!claim) {
+        const current = await Booking.findById(booking._id);
+        results.whatsapp = { success: current?.[stateField] === 'SENT', channel: 'whatsapp', status: current?.[stateField] || 'NOT_CLAIMED', alreadySent: current?.[stateField] === 'SENT' };
+        return;
+      }
+      const result = await sendTicketWhatsApp(booking, recipientPhone);
+      await Booking.updateOne(
+        { _id: booking._id, [stateField]: 'SENDING' },
+        { $set: { [stateField]: result.success ? 'SENT' : 'FAILED', confirmationWhatsAppSid: result.sid || '', confirmationWhatsAppProviderStatus: result.status || '', ...(result.success ? { confirmationWhatsAppSentAt: new Date() } : {}) } }
+      );
+      results.whatsapp = result;
+    })().catch((error) => recordProcessingFailure('whatsapp', error, results)));
   }
 
   if (channels.includes('sms') || channels.includes('all')) {
-    promises.push(
-      sendTicketSMS(booking, recipientPhone).then((res) => {
-        results.sms = res;
-      })
-    );
+    promises.push((async () => {
+      const stateField = 'confirmationSmsStatus';
+      const claim = await Booking.findOneAndUpdate(
+        { _id: booking._id, bookingStatus: 'CONFIRMED', paymentStatus: 'PAID', [stateField]: { $in: ['PENDING', 'FAILED'] } },
+        { $set: { [stateField]: 'SENDING' } },
+        { new: true }
+      );
+      if (!claim) {
+        const current = await Booking.findById(booking._id);
+        results.sms = { success: current?.[stateField] === 'SENT', channel: 'sms', status: current?.[stateField] || 'NOT_CLAIMED', alreadySent: current?.[stateField] === 'SENT' };
+        return;
+      }
+      const result = await sendTicketSMS(booking, recipientPhone);
+      await Booking.updateOne(
+        { _id: booking._id, [stateField]: 'SENDING' },
+        { $set: { [stateField]: result.success ? 'SENT' : 'FAILED', confirmationSmsSid: result.sid || '', confirmationSmsProviderStatus: result.status || '', ...(result.success ? { confirmationSmsSentAt: new Date() } : {}) } }
+      );
+      results.sms = result;
+    })().catch((error) => recordProcessingFailure('sms', error, results)));
   }
 
   await Promise.allSettled(promises);

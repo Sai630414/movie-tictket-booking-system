@@ -15,6 +15,7 @@ export default function ProfilePage() {
     dateOfBirth: user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
     city: user?.city || 'Vijayawada',
     preferredLanguage: user?.preferredLanguage || 'English',
+    whatsappOptIn: user?.whatsappOptIn === true,
   });
 
   const [saving, setSaving] = useState(false);
@@ -29,8 +30,9 @@ export default function ProfilePage() {
       dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
       city: user.city || 'Vijayawada',
       preferredLanguage: user.preferredLanguage || 'English',
+      whatsappOptIn: user.whatsappOptIn === true,
     });
-  }, [user?.name, user?.phone, user?.dateOfBirth, user?.city, user?.preferredLanguage]);
+  }, [user?.name, user?.phone, user?.dateOfBirth, user?.city, user?.preferredLanguage, user?.whatsappOptIn]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -140,6 +142,13 @@ export default function ProfilePage() {
                 </select>
               </div>
             </div>
+
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.5 }}>
+              <input type="checkbox" checked={formData.whatsappOptIn}
+                onChange={e => setFormData(f => ({ ...f, whatsappOptIn: e.target.checked }))}
+                style={{ marginTop: '3px', accentColor: 'var(--accent-red)' }} />
+              <span>Send my booking ticket updates to me on WhatsApp. I can turn this off any time.</span>
+            </label>
 
             {success && (
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '12px 16px', backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '8px', marginBottom: '16px' }}>

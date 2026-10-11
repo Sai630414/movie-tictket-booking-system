@@ -12,12 +12,13 @@ export const getProfile = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, phone, dateOfBirth, city, preferredLanguage, profileImage } = req.body;
+    const { name, phone, dateOfBirth, city, preferredLanguage, profileImage, whatsappOptIn } = req.body;
 
     if ((name !== undefined && (typeof name !== 'string' || !name.trim() || name.length > 100)) ||
       (phone !== undefined && (typeof phone !== 'string' || phone.length > 30)) ||
       (city !== undefined && (typeof city !== 'string' || !city.trim() || city.length > 100)) ||
       (preferredLanguage !== undefined && (typeof preferredLanguage !== 'string' || preferredLanguage.length > 50)) ||
+      (whatsappOptIn !== undefined && typeof whatsappOptIn !== 'boolean') ||
       (dateOfBirth !== undefined && dateOfBirth !== null && Number.isNaN(Date.parse(dateOfBirth))) ||
       (profileImage !== undefined && (typeof profileImage !== 'string' || profileImage.length > 2048 || !/^https?:\/\//i.test(profileImage)))) {
       return errorResponse(res, 'One or more profile fields are invalid', 'VALIDATION_ERROR', 400);
@@ -34,6 +35,10 @@ export const updateProfile = async (req, res, next) => {
     if (city !== undefined) user.city = city;
     if (preferredLanguage !== undefined) user.preferredLanguage = preferredLanguage;
     if (profileImage !== undefined) user.profileImage = profileImage;
+    if (whatsappOptIn !== undefined && whatsappOptIn !== user.whatsappOptIn) {
+      user.whatsappOptIn = whatsappOptIn;
+      user.whatsappOptInAt = whatsappOptIn ? new Date() : null;
+    }
 
     await user.save();
     return successResponse(res, user, 'Profile updated successfully');
