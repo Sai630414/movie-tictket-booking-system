@@ -189,8 +189,8 @@ export default function AdminShowsPage() {
                 {shows.length === 0 ? (
                   <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No scheduled shows found</td></tr>
                 ) : shows.map(show => {
-                  const totalSeats = show.seatStatus?.length || 0;
-                  const bookedSeats = show.seatStatus?.filter(s => s.status === 'BOOKED').length || 0;
+                  const totalSeats = show.seatCount || 0;
+                  const bookedSeats = show.bookedSeatCount || 0;
                   const pct = totalSeats > 0 ? Math.round((bookedSeats / totalSeats) * 100) : 0;
 
                   return (

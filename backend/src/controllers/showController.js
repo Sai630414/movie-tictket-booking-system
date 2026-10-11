@@ -1,6 +1,7 @@
 import { Show } from '../models/Show.js';
 import { Screen } from '../models/Screen.js';
 import { Movie } from '../models/Movie.js';
+import mongoose from 'mongoose';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
 export const getShows = async (req, res, next) => {
@@ -8,19 +9,64 @@ export const getShows = async (req, res, next) => {
     const { movieId, venueId, date, city } = req.query;
     const query = { status: 'ACTIVE' };
 
-    if (movieId) query.movie = movieId;
-    if (venueId) query.venue = venueId;
+    if (movieId) {
+      if (!mongoose.Types.ObjectId.isValid(movieId)) {
+        return errorResponse(res, 'Invalid movieId', 'BAD_REQUEST', 400);
+      }
+      query.movie = new mongoose.Types.ObjectId(movieId);
+    }
+    if (venueId) {
+      if (!mongoose.Types.ObjectId.isValid(venueId)) {
+        return errorResponse(res, 'Invalid venueId', 'BAD_REQUEST', 400);
+      }
+      query.venue = new mongoose.Types.ObjectId(venueId);
+    }
 
     if (date) {
       const selectedDate = new Date(date);
+      if (Number.isNaN(selectedDate.getTime())) {
+        return errorResponse(res, 'Invalid date', 'BAD_REQUEST', 400);
+      }
       const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
       const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
       query.showDate = { $gte: startOfDay, $lte: endOfDay };
     }
 
-    let shows = await Show.find(query)
-      .populate('movie venue screen')
-      .sort({ showDate: 1, startTime: 1 });
+    // Return compact list rows while calculating the seat totals needed by the admin table.
+    // Full seat status remains available from the dedicated seat endpoint.
+    let shows = await Show.aggregate([
+      { $match: query },
+      { $sort: { showDate: 1, startTime: 1 } },
+      {
+        $project: {
+          movie: 1,
+          venue: 1,
+          screen: 1,
+          showDate: 1,
+          startTime: 1,
+          language: 1,
+          format: 1,
+          basePrice: 1,
+          status: 1,
+          seatCount: { $size: { $ifNull: ['$seatStatus', []] } },
+          bookedSeatCount: {
+            $size: {
+              $filter: {
+                input: { $ifNull: ['$seatStatus', []] },
+                as: 'seat',
+                cond: { $eq: ['$$seat.status', 'BOOKED'] },
+              },
+            },
+          },
+        },
+      },
+    ]);
+
+    shows = await Show.populate(shows, [
+      { path: 'movie', select: 'title' },
+      { path: 'venue', select: 'name address city' },
+      { path: 'screen', select: 'name' },
+    ]);
 
     if (city) {
       shows = shows.filter(
