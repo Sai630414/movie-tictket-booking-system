@@ -87,7 +87,7 @@ export default function EventDetailPage() {
   const eventDate = new Date(event.date);
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: 'transparent', minHeight: '100vh' }}>
       {/* Banner Hero */}
       <div style={{ position: 'relative', height: '400px', overflow: 'hidden' }}>
         <img src={event.banner || event.poster} alt={event.name}

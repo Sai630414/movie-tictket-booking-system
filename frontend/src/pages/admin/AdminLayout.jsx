@@ -30,7 +30,7 @@ export default function AdminLayout({ children, compact = false }) {
     exact ? location.pathname === path : location.pathname.startsWith(path);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0d0d0d' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'transparent' }}>
       {/* Sidebar */}
       <aside style={{
         width: sidebarOpen ? '240px' : '70px',

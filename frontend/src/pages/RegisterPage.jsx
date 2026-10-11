@@ -44,8 +44,8 @@ export default function RegisterPage() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      backgroundColor: 'var(--bg-primary)',
-      backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(229,9,20,0.15) 0%, transparent 70%)',
+      backgroundColor: 'transparent',
+      backgroundImage: 'none',
       padding: '40px 20px'
     }}>
       <div style={{ width: '100%', maxWidth: '480px' }}>

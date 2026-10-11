@@ -55,7 +55,7 @@ export default function BookingsPage() {
   }, [activeTab, user]);
 
   return (
-    <main className="my-bookings-page">
+    <main className="my-bookings-page" style={{ backgroundColor: 'transparent' }}>
       <header className="my-bookings-header">
         <div className="container">
           <div className="my-bookings-heading">

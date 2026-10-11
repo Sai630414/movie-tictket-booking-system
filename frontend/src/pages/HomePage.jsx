@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Zap } from 'lucide-react';
 import api from '../services/api.js';
-import HeroBanner from '../components/HeroBanner.jsx';
-import MovieCard from '../components/MovieCard.jsx';
+import MovieReel from '../components/MovieReel.jsx';
 import EventCard from '../components/EventCard.jsx';
 import ContentRow from '../components/ContentRow.jsx';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
@@ -13,6 +12,7 @@ const emptyData = { nowShowing: [], events: [] };
 export default function HomePage() {
   const { selectedCity } = useCity();
   const [data, setData] = useState(emptyData);
+  const [language, setLanguage] = useState('All');
   const [moviesLoading, setMoviesLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [moviesError, setMoviesError] = useState(false);
@@ -21,6 +21,7 @@ export default function HomePage() {
   useEffect(() => {
     let cancelled = false;
     setMoviesLoading(true);
+    setLanguage('All');
     setEventsLoading(true);
     setMoviesError(false);
     setEventsError(false);
@@ -62,34 +63,23 @@ export default function HomePage() {
     return () => { cancelled = true; };
   }, [selectedCity]);
 
-  const heroMovies = data.nowShowing.slice(0, 5);
 
-  return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
-      {heroMovies.length > 0 && <HeroBanner movies={heroMovies} />}
-      <div className="container" style={{ paddingTop: heroMovies.length > 0 ? '48px' : '120px' }}>
-        {moviesLoading && <LoadingSpinner message="Loading movies..." />}
-        {!moviesLoading && moviesError && <p role="status" style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Movies are temporarily unavailable. Please try again shortly.</p>}
-        {!moviesLoading && data.nowShowing.length > 0 && (
-          <ContentRow title={`Now Showing in ${selectedCity}`} icon={Calendar} columns={4}>
-            {data.nowShowing.map((movie) => <div key={movie._id} style={{ scrollSnapAlign: 'start' }}><MovieCard movie={movie} /></div>)}
-          </ContentRow>
-        )}
-        {!moviesLoading && !moviesError && data.nowShowing.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-secondary)' }}>
-            <Zap size={44} color="var(--accent-red)" style={{ margin: '0 auto 16px' }} />
-            <h2 style={{ color: '#fff', marginBottom: '12px' }}>No movies available in {selectedCity}</h2>
-            <p>There are no upcoming shows with available seats in this city.</p>
-          </div>
-        )}
-        {eventsLoading && <LoadingSpinner message="Loading upcoming events..." />}
-        {!eventsLoading && eventsError && <p role="status" style={{ color: 'var(--text-muted)', marginBottom: '48px' }}>Upcoming events are temporarily unavailable.</p>}
-        {!eventsLoading && !eventsError && data.events.length > 0 && (
-          <ContentRow title="Upcoming Events" icon={Calendar}>
-            {data.events.map((event) => <div key={event._id} style={{ scrollSnapAlign: 'start', minWidth: '280px' }}><EventCard event={event} /></div>)}
-          </ContentRow>
-        )}
-      </div>
-    </div>
-  );
+ const languages = ['All', ...new Set(data.nowShowing.map(movie => movie.language).filter(Boolean))];
+ const shownMovies = language === 'All' ? data.nowShowing : data.nowShowing.filter(movie => movie.language === language);
+ return <main className="cv-home container">
+  {import.meta.env.DEV && import.meta.env.VITE_DESIGN_PREVIEW === 'true' && <p className="cv-preview-notice">Design preview · Sample catalog · Sign-in and payments need configured services</p>}
+  <div className="cv-home-location"><span className="cv-status-dot" />Good times in <strong>{selectedCity}</strong><span>Movies, events, and your next night out.</span></div>
+  <header className="cv-section-heading"><div><span className="cv-eyebrow">Your plans, upgraded</span><h1>Now showing in {selectedCity}</h1></div><span className="cv-count">{data.nowShowing.length} films to discover</span></header>
+  {moviesLoading && <LoadingSpinner message="Loading movies..." />}
+  {!moviesLoading && moviesError && <p role="status" className="cv-empty">Movies are temporarily unavailable. Please try again shortly.</p>}
+  {!moviesLoading && data.nowShowing.length > 0 && <>
+   <div className="cv-language-filters" role="group" aria-label="Filter movies by language">{languages.map(value => <button key={value} type="button" aria-pressed={language === value} onClick={() => setLanguage(value)}>{value === 'All' ? 'All languages' : value}</button>)}</div>
+   {shownMovies.length ? <MovieReel movies={shownMovies} /> : <p role="status" className="cv-empty">No movies in this language. Select another filter.</p>}
+  </>}
+  {!moviesLoading && !moviesError && !data.nowShowing.length && <div className="cv-empty"><Zap size={32} aria-hidden="true" /><h2>No movies available in {selectedCity}</h2><p>There are no upcoming shows with available seats in this city.</p></div>}
+  <aside className="cv-intermission"><div><span className="cv-eyebrow">The unofficial rule</span><h2>Great stories. Better company. Extra popcorn.</h2></div><span>Make it a movie night.</span></aside>
+  {eventsLoading && <LoadingSpinner message="Loading upcoming events..." />}
+  {!eventsLoading && eventsError && <p role="status" className="cv-empty">Upcoming events are temporarily unavailable.</p>}
+  {!eventsLoading && !eventsError && data.events.length > 0 && <ContentRow title="Upcoming events" icon={Calendar}>{data.events.map(event => <div key={event._id} style={{ minWidth: 280 }}><EventCard event={event} /></div>)}</ContentRow>}
+ </main>;
 }

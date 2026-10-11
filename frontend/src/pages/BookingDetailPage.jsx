@@ -79,7 +79,7 @@ export default function BookingDetailPage() {
   const isConfirmed = booking.bookingStatus === 'CONFIRMED';
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', padding: '40px 0' }}>
+    <div style={{ backgroundColor: 'transparent', minHeight: '100vh', padding: '40px 0' }}>
       <div className="container" style={{ maxWidth: '600px' }}>
         <Link to="/bookings" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '24px' }}>
           <ArrowLeft size={16} /> Back to My Bookings

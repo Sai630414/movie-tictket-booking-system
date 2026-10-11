@@ -151,7 +151,7 @@ export default function SeatSelectionPage() {
   const total = subtotal + convenienceFee + gst;
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: 'transparent', minHeight: '100vh' }}>
       {/* Header Info */}
       <div style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', padding: '20px 0' }}>
         <div className="container">

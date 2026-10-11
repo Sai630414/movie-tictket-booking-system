@@ -59,7 +59,7 @@ export default function EventsPage() {
   const activeFilterCount = [filters.category, filters.city, filters.date].filter(Boolean).length;
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: 'transparent', minHeight: '100vh' }}>
       {/* Header */}
       <div style={{
         background: 'linear-gradient(180deg, rgba(229,9,20,0.15) 0%, transparent 100%)',

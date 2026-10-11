@@ -78,7 +78,7 @@ export default function MoviesPage() {
   const activeFilterCount = [filters.genre, filters.language, filters.releaseType, filters.format, filters.rating].filter(Boolean).length;
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: 'transparent', minHeight: '100vh' }}>
       {/* Page Header */}
       <div style={{
         background: 'linear-gradient(180deg, rgba(229,9,20,0.15) 0%, transparent 100%)',

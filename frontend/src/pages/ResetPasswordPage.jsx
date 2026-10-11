@@ -43,7 +43,7 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', backgroundColor: 'var(--bg-primary)', padding: '40px 20px' }}>
+    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', backgroundColor: 'transparent', padding: '40px 20px' }}>
       <div className="glass-card" style={{ width: '100%', maxWidth: '440px' }}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}><LockKeyhole color="var(--accent-red)" /><h1 style={{ color: '#fff', fontSize: '1.5rem' }}>Choose a new password</h1></div>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Use at least 8 characters for your new password.</p>

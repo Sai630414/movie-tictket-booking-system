@@ -205,7 +205,7 @@ export default function CheckoutPage() {
   );
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', padding: 'clamp(20px, 4vw, 40px) 0' }}>
+    <div style={{ backgroundColor: 'transparent', minHeight: '100vh', padding: 'clamp(20px, 4vw, 40px) 0' }}>
       <div className="container" style={{ maxWidth: '720px' }}>
         
         {/* Header with Hold Countdown */}

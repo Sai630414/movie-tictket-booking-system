@@ -64,7 +64,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header style={{
+      <header className="cv-header" style={{
         position: 'sticky',
         top: 0,
         zIndex: 1000,
@@ -75,20 +75,20 @@ export default function Navbar() {
         display: 'flex',
         alignItems: 'center'
       }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        <div className="container cv-header-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           
           {/* Logo & Desktop Main Nav */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+          <div className="cv-brand-nav" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
               <div style={{
                 width: '36px',
                 height: '36px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, var(--accent-red) 0%, #b20710 100%)',
+                background: 'var(--accent-red)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(229,9,20,0.5)',
+                boxShadow: 'none',
                 flexShrink: 0
               }}>
                 <Film size={20} color="#ffffff" />
@@ -99,7 +99,7 @@ export default function Navbar() {
             </Link>
 
             {/* Desktop Navigation Links */}
-            <nav className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <nav className="cv-nav-links hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               <Link to="/movies" style={{
                 color: isActive('/movies') ? 'var(--accent-red)' : 'var(--text-secondary)',
                 fontWeight: isActive('/movies') ? '600' : '500',
@@ -137,12 +137,13 @@ export default function Navbar() {
           </div>
 
           {/* Right Side Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="cv-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             
             {/* Search Button (Desktop) */}
             <button
               onClick={() => setShowSearchModal(true)}
-              className="hide-on-mobile"
+              aria-label="Search movies and events"
+              className="cv-search-button hide-on-mobile"
               style={{
                 background: 'rgba(255, 255, 255, 0.06)',
                 border: '1px solid var(--border-color)',
@@ -358,7 +359,7 @@ export default function Navbar() {
                   )}
                 </div>
               ) : (
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="cv-auth-actions" style={{ display: 'flex', gap: '8px' }}>
                   <Link to="/login" className="btn-outline" style={{ padding: '7px 14px', fontSize: '0.85rem' }}>
                     Sign In
                   </Link>

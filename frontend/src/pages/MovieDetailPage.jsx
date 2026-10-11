@@ -61,7 +61,7 @@ export default function MovieDetailPage() {
   }, {});
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: 'transparent', minHeight: '100vh' }}>
       {/* Backdrop Hero */}
       <div style={{
         position: 'relative',

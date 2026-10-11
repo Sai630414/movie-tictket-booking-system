@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="720" viewBox="0 0 880 720" fill="none" stroke="#efd164" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <g id="camera"><rect x="0" y="13" width="36" height="25" rx="5"/><circle cx="9" cy="6" r="7"/><circle cx="27" cy="6" r="7"/><path d="m36 20 15-7v25l-15-8M18 38v16m0-9-10 12m10-12 10 12"/><circle cx="13" cy="25" r="3"/></g>
+    <g id="mic"><rect x="12" width="13" height="26" rx="6.5"/><path d="M6 18v5a12.5 12.5 0 0 0 25 0v-5M18.5 36v17M10 53h17M15 7h7m-7 5h7"/></g>
+    <g id="light"><path d="m5 15 27-10 9 24-27 10ZM9 14 0 7m34-2 4-10M14 39l-6 10m32-20 11 2M24 36v23m0-8-10 15m10-15 10 15M45 9l14-6M49 18l14-3M49 26l13 4"/><path d="m13 15 12-4 6 15-12 4Z"/></g>
+    <g id="popcorn"><path d="m4 17 7 36h27l7-36ZM4 17h41M15 23l3 24m7-24v24m10-24-3 24"/><path d="M6 16c-7-9 2-14 8-10 0-9 13-10 15-2 8-5 18 3 14 12"/><path d="m17 58 6 3 6-3"/></g>
+    <g id="glasses"><rect width="24" height="19" rx="4"/><rect x="31" width="24" height="19" rx="4"/><path d="M24 8q3-5 7 0M0 5l-7-10m62 10 7-10M5 5h14v9H5Zm31 0h14v9H36Z"/></g>
+    <g id="clapper"><rect y="14" width="49" height="31" rx="3"/><path d="M0 14h49M0 14 46 0l4 12M7 12l5-11m6 8 5-11m6 8 5-11M8 25h32M8 33h21"/></g>
+    <g id="ticket"><path d="M0 0h55v12a7 7 0 0 0 0 14v12H0V26a7 7 0 0 0 0-14Z"/><path d="M17 4v3m0 5v3m0 5v3m0 5v5m8-21h22m-22 7h15m-15 7h20"/></g>
+    <g id="note"><path d="M11 34V5L35 0v29M11 11l24-5"/><ellipse cx="5" cy="35" rx="7" ry="4" transform="rotate(-20 5 35)"/><ellipse cx="29" cy="30" rx="7" ry="4" transform="rotate(-20 29 30)"/></g>
+    <g id="dance"><circle cx="22" cy="7" r="7"/><path d="M20 14 15 34l18 6M17 22 3 14 0 3m17 19 17-5 7-12M15 34 2 47l6 15m25-22 12 11 11-3M2 63h9m44-16 4 4"/><path d="m47 8 3-8 8 2M-5 39l-4-5m42 24 5 3"/></g>
+    <g id="sing"><circle cx="18" cy="8" r="7"/><path d="M18 15v26m0-20-11 9-6-6m17-3 12 5 8-10m-20 25-8 18m8-18 10 18M30 14l9-3 3 5-9 3M40 24v35m-8 0h16"/><path d="M45 5v7m0-7 8-2v7"/><circle cx="42" cy="13" r="2"/><circle cx="50" cy="11" r="2"/></g>
+    <g id="star"><path d="m10 0 3 7 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1Z"/></g>
+    <g id="reel"><circle cx="22" cy="22" r="22"/><circle cx="22" cy="22" r="4"/><circle cx="22" cy="9" r="5"/><circle cx="35" cy="22" r="5"/><circle cx="22" cy="35" r="5"/><circle cx="9" cy="22" r="5"/><path d="M43 30q14 0 12 13"/></g>
+    <g id="speaker"><circle cx="13" cy="10" r="7"/><path d="M13 17v24m0-19-11 9m11-7 15 7 5-5M13 41 4 55m9-14 12 14M10 9h1m5 0h1m-6 5h4"/></g>
+  </defs>
+  <use href="#camera" transform="translate(45 38) rotate(-12)"/>
+  <use href="#glasses" transform="translate(217 45) rotate(12)"/>
+  <use href="#mic" transform="translate(413 24) rotate(15)"/>
+  <use href="#clapper" transform="translate(624 43) rotate(-10)"/>
+  <use href="#note" transform="translate(808 37) rotate(13)"/>
+  <use href="#light" transform="translate(131 168) rotate(8)"/>
+  <use href="#popcorn" transform="translate(326 145) rotate(-8)"/>
+  <use href="#dance" transform="translate(518 146) rotate(-6)"/>
+  <use href="#reel" transform="translate(745 173) rotate(15)"/>
+  <g transform="translate(45 290) rotate(-5)">
+    <rect width="170" height="83" rx="3"/><use href="#speaker" transform="translate(11 20) scale(.8)"/>
+    <path d="M53 12h107v36H77l-11 9 2-9H53Z"/>
+    <text x="64" y="34" stroke="none" fill="#efd164" font-family="Arial,sans-serif" font-size="10">I'll be back.</text>
+  </g>
+  <use href="#ticket" transform="translate(304 290) rotate(14)"/>
+  <use href="#sing" transform="translate(441 293) rotate(7)"/>
+  <g transform="translate(619 290) rotate(4)">
+    <rect width="192" height="83" rx="3"/><use href="#speaker" transform="translate(14 20) scale(.8)"/>
+    <path d="M55 12h126v36H80l-11 10 2-10H55Z"/>
+    <text x="65" y="28" stroke="none" fill="#efd164" font-family="Arial,sans-serif" font-size="9">May the Force</text>
+    <text x="65" y="41" stroke="none" fill="#efd164" font-family="Arial,sans-serif" font-size="9">be with you.</text>
+  </g>
+  <use href="#popcorn" transform="translate(90 464) rotate(12)"/>
+  <use href="#camera" transform="translate(251 462) rotate(8)"/>
+  <use href="#glasses" transform="translate(442 456) rotate(-13)"/>
+  <use href="#mic" transform="translate(655 436) rotate(-18)"/>
+  <use href="#light" transform="translate(803 459) rotate(-9)"/>
+  <use href="#note" transform="translate(29 609) rotate(-12)"/>
+  <use href="#dance" transform="translate(174 597) rotate(7)"/>
+  <g transform="translate(332 582) rotate(-3)">
+    <rect width="190" height="83" rx="3"/><use href="#speaker" transform="translate(13 20) scale(.8)"/>
+    <path d="M55 12h125v36H78l-10 9 2-9H55Z"/>
+    <text x="65" y="28" stroke="none" fill="#efd164" font-family="Arial,sans-serif" font-size="9">Picture abhi</text>
+    <text x="65" y="41" stroke="none" fill="#efd164" font-family="Arial,sans-serif" font-size="9">baaki hai.</text>
+  </g>
+  <use href="#clapper" transform="translate(626 591) rotate(9)"/>
+  <use href="#sing" transform="translate(780 604) rotate(-8)"/>
+  <g opacity=".65">
+    <use href="#star" transform="translate(155 89) scale(.5)"/><use href="#star" transform="translate(538 60) scale(.65)"/>
+    <use href="#star" transform="translate(239 207) scale(.5)"/><use href="#star" transform="translate(657 206) scale(.45)"/>
+    <use href="#star" transform="translate(391 379) scale(.6)"/><use href="#star" transform="translate(570 444) scale(.45)"/>
+    <use href="#star" transform="translate(211 527) scale(.5)"/><use href="#star" transform="translate(729 680) scale(.5)"/>
+    <path d="m361 90 3 6m-12-2 7 1m401 139 4 5m-11 0 7-2M50 410l6 2m-2-8-1 7m527-65 5 4m-8 1 5-4M539 542l5 4m-9 1 5-5"/>
+  </g>
+</svg>

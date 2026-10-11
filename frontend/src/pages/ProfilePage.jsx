@@ -58,7 +58,7 @@ export default function ProfilePage() {
   );
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', padding: '60px 0' }}>
+    <div style={{ backgroundColor: 'transparent', minHeight: '100vh', padding: '60px 0' }}>
       <div className="container" style={{ maxWidth: '680px' }}>
         <h1 style={{ fontSize: '2rem', color: '#fff', marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <User size={28} color="var(--accent-red)" /> My Profile

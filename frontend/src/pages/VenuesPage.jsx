@@ -30,7 +30,7 @@ export default function VenuesPage() {
   }, [selectedCity, typeFilter]);
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: 'transparent', minHeight: '100vh' }}>
       <div style={{ borderBottom: '1px solid var(--border-color)', padding: '40px 0 30px', background: 'linear-gradient(180deg, rgba(229,9,20,0.12) 0%, transparent 100%)' }}>
         <div className="container">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>

@@ -81,7 +81,7 @@ export default function AuthCallbackPage() {
   const StatusIcon = status === 'loading' ? LoaderCircle : isSuccess ? CheckCircle : MailWarning;
 
   return (
-    <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', backgroundColor: 'var(--bg-primary)', backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(229,9,20,0.15) 0%, transparent 70%)', padding: '32px 20px' }}>
+    <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', backgroundColor: 'transparent', backgroundImage: 'none', padding: '32px 20px' }}>
       <section className="glass-card" style={{ width: '100%', maxWidth: '480px', textAlign: 'center' }}>
         <Link to="/" aria-label="CineVerse home" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', marginBottom: '30px' }}>
           <span style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'var(--accent-red)', display: 'grid', placeItems: 'center' }}><Film size={24} color="#fff" /></span>
