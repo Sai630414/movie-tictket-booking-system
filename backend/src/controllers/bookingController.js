@@ -234,23 +234,40 @@ export const applyCouponToBooking = async (req, res, next) => {
 
 export const getBookings = async (req, res, next) => {
   try {
-    const { statusTab } = req.query; // 'upcoming', 'completed', 'cancelled'
+    const { statusTab } = req.query; // 'upcoming', 'completed' (past), 'cancelled'
     const userId = req.user._id;
 
     const query = { user: userId };
-    const now = new Date();
 
     if (statusTab === 'upcoming') {
       query.bookingStatus = 'CONFIRMED';
     } else if (statusTab === 'completed') {
-      query.bookingStatus = 'COMPLETED';
+      query.bookingStatus = { $in: ['CONFIRMED', 'COMPLETED'] };
     } else if (statusTab === 'cancelled') {
       query.bookingStatus = 'CANCELLED';
     }
 
-    const bookings = await Booking.find(query)
+    let bookings = await Booking.find(query)
       .populate('movie event venue show')
       .sort({ createdAt: -1 });
+
+    if (statusTab === 'upcoming' || statusTab === 'completed') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      bookings = bookings.filter((booking) => {
+        const scheduledDate = booking.bookingType === 'EVENT'
+          ? booking.event?.date
+          : booking.show?.showDate;
+        if (!scheduledDate) return false;
+
+        const date = new Date(scheduledDate);
+        if (Number.isNaN(date.getTime())) return false;
+        date.setHours(0, 0, 0, 0);
+
+        return statusTab === 'upcoming' ? date >= today : date < today;
+      });
+    }
 
     return successResponse(res, bookings, 'User bookings retrieved successfully');
   } catch (err) {
