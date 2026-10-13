@@ -262,6 +262,23 @@ export const sendTicketEmail = async (booking, recipientEmail) => {
 };
 
 /**
+ * Normalize phone numbers to international E.164 format
+ */
+export const normalizePhoneNumber = (phone) => {
+  if (!phone || typeof phone !== 'string') return '';
+  const cleaned = phone.replace(/[^0-9+]/g, '');
+  if (!cleaned) return '';
+  // If 10 digits without leading + or country code (e.g. standard Indian mobile format)
+  if (/^[6-9]\d{9}$/.test(cleaned)) {
+    return `+91${cleaned}`;
+  }
+  if (cleaned.startsWith('+')) {
+    return cleaned;
+  }
+  return `+${cleaned}`;
+};
+
+/**
  * Send Ticket via WhatsApp
  */
 export const sendTicketWhatsApp = async (booking, recipientPhone) => {
@@ -269,17 +286,23 @@ export const sendTicketWhatsApp = async (booking, recipientPhone) => {
     return { success: false, channel: 'whatsapp', error: 'No recipient phone number provided' };
   }
 
+  const normalizedPhone = normalizePhoneNumber(recipientPhone);
   const messageText = formatTicketMessage(booking);
+  const cleanDigits = normalizedPhone ? normalizedPhone.replace(/[^0-9]/g, '') : '';
+  const shareUrl = cleanDigits
+    ? `https://wa.me/${cleanDigits}?text=${encodeURIComponent(messageText)}`
+    : `https://wa.me/?text=${encodeURIComponent(messageText)}`;
+
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const fromWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER;
 
-  if (accountSid && authToken && fromWhatsAppNumber) {
+  if (accountSid && authToken && fromWhatsAppNumber && normalizedPhone) {
     try {
       const authHeader = 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64');
       const params = new URLSearchParams({
         From: `whatsapp:${fromWhatsAppNumber}`,
-        To: `whatsapp:${recipientPhone}`,
+        To: `whatsapp:${normalizedPhone}`,
         Body: messageText,
       });
 
@@ -301,26 +324,31 @@ export const sendTicketWhatsApp = async (booking, recipientPhone) => {
         success: true,
         channel: 'whatsapp',
         sid: data.sid,
-        recipient: recipientPhone,
+        recipient: normalizedPhone,
+        shareUrl,
+        messageText,
       };
     } catch (err) {
       console.error('[Twilio WhatsApp Error]:', err.message);
-      return { success: false, channel: 'whatsapp', error: err.message };
+      return { success: false, channel: 'whatsapp', error: err.message, shareUrl };
     }
   }
 
-  // Simulation mode
+  // Simulation mode & Direct 1-Click WhatsApp Share Link
   console.log(`\n=================== [SIMULATED WHATSAPP MESSAGE] ===================`);
-  console.log(`Recipient: ${recipientPhone}`);
+  console.log(`Recipient: ${normalizedPhone || '(No phone specified)'}`);
   console.log(messageText);
+  console.log(`WhatsApp 1-Click Link: ${shareUrl}`);
   console.log(`====================================================================\n`);
 
   return {
     success: true,
     channel: 'whatsapp',
     simulated: true,
-    recipient: recipientPhone,
-    message: 'Simulated WhatsApp message logged to console',
+    recipient: normalizedPhone || recipientPhone,
+    shareUrl,
+    messageText,
+    message: 'WhatsApp ticket generated successfully',
   };
 };
 
@@ -328,7 +356,8 @@ export const sendTicketWhatsApp = async (booking, recipientPhone) => {
  * Send Ticket via SMS
  */
 export const sendTicketSMS = async (booking, recipientPhone) => {
-  if (!recipientPhone) {
+  const normalizedPhone = normalizePhoneNumber(recipientPhone);
+  if (!normalizedPhone) {
     return { success: false, channel: 'sms', error: 'No recipient phone number provided' };
   }
 
@@ -342,7 +371,7 @@ export const sendTicketSMS = async (booking, recipientPhone) => {
       const authHeader = 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64');
       const params = new URLSearchParams({
         From: fromPhoneNumber,
-        To: recipientPhone,
+        To: normalizedPhone,
         Body: messageText,
       });
 

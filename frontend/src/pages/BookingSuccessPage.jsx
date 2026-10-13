@@ -15,16 +15,26 @@ export default function BookingSuccessPage() {
   const ticketRef = useRef(null);
   const [sendingDelivery, setSendingDelivery] = useState(null);
   const [deliveryFeedback, setDeliveryFeedback] = useState('');
+  const [whatsappShareUrl, setWhatsappShareUrl] = useState('');
 
   const handleSendTicket = async (channel) => {
     if (!booking?._id) return;
     setSendingDelivery(channel);
     setDeliveryFeedback('');
+    setWhatsappShareUrl('');
     try {
       const res = await api.post(`/bookings/${booking._id}/send-ticket`, { channels: [channel] });
       if (res.data?.success) {
         const info = res.data.data?.[channel];
-        if (info?.previewUrl) {
+        if (channel === 'whatsapp') {
+          if (info?.shareUrl) {
+            setWhatsappShareUrl(info.shareUrl);
+            window.open(info.shareUrl, '_blank', 'noopener,noreferrer');
+            setDeliveryFeedback('💬 WhatsApp opened with your ticket details! Hit Send to share.');
+          } else {
+            setDeliveryFeedback('Ticket dispatched to WhatsApp successfully!');
+          }
+        } else if (info?.previewUrl) {
           setDeliveryFeedback(`Email dispatched! (Preview: ${info.previewUrl})`);
         } else {
           setDeliveryFeedback(`Ticket sent via ${channel.toUpperCase()} successfully!`);
@@ -121,7 +131,19 @@ export default function BookingSuccessPage() {
             backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)',
             color: '#86efac', fontSize: '0.88rem', textAlign: 'center', wordBreak: 'break-all'
           }}>
-            {deliveryFeedback}
+            <div>{deliveryFeedback}</div>
+            {whatsappShareUrl && (
+              <div style={{ marginTop: '8px' }}>
+                <a
+                  href={whatsappShareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#4ade80', textDecoration: 'underline', fontWeight: 'bold' }}
+                >
+                  👉 Tap here to open WhatsApp directly
+                </a>
+              </div>
+            )}
           </div>
         )}
 

@@ -7,6 +7,7 @@ import {
   sendTicketWhatsApp,
   sendTicketSMS,
   sendTicketDelivery,
+  normalizePhoneNumber,
 } from '../src/services/deliveryService.js';
 
 const mockBooking = {
@@ -102,3 +103,22 @@ test('sendTicketDelivery coordinates multi-channel dispatch', async () => {
   assert.ok(results.sms);
   assert.equal(results.sms.success, true);
 });
+
+test('normalizePhoneNumber formats standard Indian and international numbers', () => {
+  assert.equal(normalizePhoneNumber('9876543210'), '+919876543210');
+  assert.equal(normalizePhoneNumber('+91 98765 43210'), '+919876543210');
+  assert.equal(normalizePhoneNumber('+1 (415) 555-2671'), '+14155552671');
+  assert.equal(normalizePhoneNumber(''), '');
+  assert.equal(normalizePhoneNumber(null), '');
+});
+
+test('sendTicketWhatsApp generates a direct wa.me link with encoded ticket details', async () => {
+  const result = await sendTicketWhatsApp(mockBooking, '9876543210');
+  assert.equal(result.success, true);
+  assert.equal(result.recipient, '+919876543210');
+  assert.ok(result.shareUrl);
+  assert.ok(result.shareUrl.startsWith('https://wa.me/919876543210?text='));
+  assert.ok(result.shareUrl.includes(encodeURIComponent('Cyberpulse: Neo Tokyo 2099')));
+  assert.ok(result.shareUrl.includes(encodeURIComponent('MOV-2026-TEST01')));
+});
+
