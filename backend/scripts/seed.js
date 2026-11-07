@@ -854,12 +854,12 @@ const venuesData = [
    SHOW DATES
 ============================================================ */
 
-const SHOW_DATE_KEYS = ['2026-10-11', '2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16'];
+const SHOW_DATE_KEYS = ['2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09', '2026-11-10'];
 const DAILY_SHOW_TIMES = ['10:00 AM', '02:00 PM', '06:00 PM'];
 const SHOW_DURATION_MINUTES = 150;
 const SCREEN_CLEANING_MINUTES = 30;
 const DEMO_THEATRE_KEY = 'cineverse-demo-theatre';
-const SHOW_KEY_PREFIX = 'cineverse-show-2026-10-';
+const SHOW_KEY_PREFIX = 'cineverse-show-2026-11-';
 const LEGACY_DEMO_SHOW_KEY_PREFIX = 'cineverse-demo-show-';
 
 const datePartsInKolkata = (date = new Date()) => new Intl.DateTimeFormat('en-CA', {

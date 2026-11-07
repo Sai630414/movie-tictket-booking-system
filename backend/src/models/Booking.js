@@ -126,6 +126,42 @@ const bookingSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
+    phone: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    whatsappConsent: {
+      type: Boolean,
+      default: true,
+    },
+    ticketImage: {
+      type: String,
+      default: '',
+    },
+    whatsapp: {
+      status: {
+        type: String,
+        enum: ['PENDING', 'PROCESSING', 'SENT', 'FAILED'],
+        default: 'PENDING',
+      },
+      messageId: {
+        type: String,
+        default: null,
+      },
+      sentAt: {
+        type: Date,
+        default: null,
+      },
+      attempts: {
+        type: Number,
+        default: 0,
+      },
+      lastError: {
+        type: String,
+        default: null,
+      },
+    },
     confirmationEmailStatus: { type: String, enum: ['PENDING', 'SENDING', 'SENT', 'FAILED'], default: 'PENDING' },
     confirmationEmailSentAt: { type: Date, default: null },
     confirmationEmailMessageId: { type: String, default: '' },
@@ -144,5 +180,6 @@ const bookingSchema = new mongoose.Schema(
 
 bookingSchema.index({ bookingId: 1, user: 1 });
 bookingSchema.index({ createdAt: -1 });
+bookingSchema.index({ 'whatsapp.status': 1 });
 
 export const Booking = mongoose.model('Booking', bookingSchema);

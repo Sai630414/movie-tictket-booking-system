@@ -3,6 +3,7 @@ import { Payment } from '../models/Payment.js';
 import { createRazorpayOrder, verifyPaymentSignature, fetchCapturedPayment, fetchRazorpayOrder, processWebhookEvent } from '../services/paymentService.js';
 import { confirmMovieBooking } from '../services/bookingService.js';
 import { sendBookingConfirmation } from '../services/email/brevoEmailService.js';
+import { queueWhatsAppNotification } from '../services/whatsappNotificationService.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
 export const createOrder = async (req, res, next) => {
@@ -90,6 +91,9 @@ export const verifyPayment = async (req, res, next) => {
           console.error('[Confirmation email retry failed]', { bookingId: String(booking._id), reason: emailError.name || 'EMAIL_ERROR' });
         }
       }
+      if (booking.whatsapp?.status === 'PENDING' || booking.whatsapp?.status === 'FAILED') {
+        queueWhatsAppNotification(booking._id);
+      }
       return successResponse(res, booking, 'Payment already verified');
     }
     if (booking.bookingStatus !== 'PENDING') return errorResponse(res, 'Booking is no longer payable', 'BOOKING_UNAVAILABLE', 409);
@@ -113,6 +117,9 @@ export const verifyPayment = async (req, res, next) => {
       razorpayPaymentId,
       razorpaySignature
     );
+
+    // Trigger WhatsApp notification for confirmed booking
+    queueWhatsAppNotification(confirmedBooking._id);
 
     // Update payment record to CAPTURED
     try {

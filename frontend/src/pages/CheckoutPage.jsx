@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Lock, CreditCard, Shield, Ticket, AlertCircle, Tag, Timer, CheckCircle } from 'lucide-react';
+import { Lock, CreditCard, Shield, Ticket, AlertCircle, Tag, Timer, CheckCircle, MessageCircle, Phone } from 'lucide-react';
 import api from '../services/api.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -31,6 +31,8 @@ export default function CheckoutPage() {
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [couponSuccess, setCouponSuccess] = useState('');
   const [error, setError] = useState('');
+  const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [whatsappConsent, setWhatsappConsent] = useState(true);
 
   // Hold countdown
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
@@ -48,6 +50,11 @@ export default function CheckoutPage() {
         const res = await api.get(`/bookings/${bookingId}`);
         if (res.data?.success) {
           setBooking(res.data.data);
+          if (res.data.data.phone) {
+            setWhatsappPhone(res.data.data.phone);
+          } else if (user?.phone) {
+            setWhatsappPhone(user.phone);
+          }
           if (res.data.data.couponCode) {
             setCouponCode(res.data.data.couponCode);
           }
@@ -107,6 +114,14 @@ export default function CheckoutPage() {
     let activeOrderId = '';
 
     try {
+      // Persist WhatsApp contact number and consent
+      if (booking?._id && whatsappPhone) {
+        await api.patch(`/bookings/${booking._id}/contact`, {
+          phone: whatsappPhone.trim(),
+          whatsappConsent,
+        }).catch(() => {});
+      }
+
       // Step 1: Create Razorpay Order on Backend
       const orderRes = await api.post('/payments/create-order', { bookingId: booking._id });
       if (!orderRes.data?.success) {
@@ -135,7 +150,7 @@ export default function CheckoutPage() {
         prefill: {
           name: user?.name || '',
           email: user?.email || '',
-          contact: user?.phone || '',
+          contact: whatsappPhone || user?.phone || '',
         },
         theme: { color: '#E50914' },
         handler: async (response) => {
@@ -370,6 +385,52 @@ export default function CheckoutPage() {
               <span style={{ color: 'var(--accent-gold)' }}>₹{booking.totalAmount}</span>
             </div>
           </div>
+        </div>
+
+        {/* WhatsApp Ticket Delivery Card */}
+        <div className="glass-card" style={{ marginBottom: '24px', border: '1px solid rgba(34, 197, 94, 0.3)', backgroundColor: 'rgba(34, 197, 94, 0.04)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+            <div style={{
+              width: '32px', height: '32px', borderRadius: '50%',
+              backgroundColor: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <MessageCircle size={18} color="#ffffff" />
+            </div>
+            <div>
+              <div style={{ color: '#fff', fontWeight: '700', fontSize: '1rem' }}>Instant WhatsApp Ticket Automation</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Your verified movie ticket image & QR code will be delivered automatically</div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '6px' }}>
+              WhatsApp Phone Number (with Country Code)
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="tel"
+                placeholder="e.g. +91 9876543210"
+                value={whatsappPhone}
+                onChange={(e) => setWhatsappPhone(e.target.value)}
+                style={{
+                  width: '100%', padding: '10px 14px 10px 38px',
+                  backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                  borderRadius: '8px', color: '#fff', fontSize: '0.9rem', outline: 'none'
+                }}
+              />
+              <Phone size={16} color="#22c55e" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            </div>
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.82rem', color: '#cbd5e1' }}>
+            <input
+              type="checkbox"
+              checked={whatsappConsent}
+              onChange={(e) => setWhatsappConsent(e.target.checked)}
+              style={{ accentColor: '#22c55e', width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+            <span>I agree to receive my official CineVerse movie ticket image via WhatsApp upon successful payment.</span>
+          </label>
         </div>
 
         <div className="glass-card" style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '14px' }}>

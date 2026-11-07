@@ -9,7 +9,7 @@ export const createBooking = async (req, res, next) => {
   const reservedTicketItems = [];
   let reservationEventId = null;
   try {
-    const { bookingType, showId, eventId, seatIds, ticketItems } = req.body;
+    const { bookingType, showId, eventId, seatIds, ticketItems, phone, whatsappConsent } = req.body;
     const userId = req.user._id;
 
     if (!bookingType || !['MOVIE', 'EVENT'].includes(bookingType)) {
@@ -164,6 +164,8 @@ export const createBooking = async (req, res, next) => {
       couponCode,
       tax,
       totalAmount,
+      phone: (phone || req.user.phone || '').trim(),
+      whatsappConsent: whatsappConsent !== false,
       paymentStatus: 'CREATED',
       bookingStatus: 'PENDING',
       holdExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
@@ -342,6 +344,78 @@ export const sendTicketNotification = async (req, res, next) => {
     });
 
     return successResponse(res, deliveryResults, 'Ticket delivery dispatched successfully');
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getBookingWhatsAppStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    let query = { _id: id };
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      query = { bookingId: id };
+    }
+
+    const booking = await Booking.findOne(query).select('bookingId user whatsapp phone bookingStatus paymentStatus');
+    if (!booking) {
+      return errorResponse(res, 'Booking not found', 'NOT_FOUND', 404);
+    }
+
+    if (req.user.role !== 'admin' && booking.user.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized access to booking', 'FORBIDDEN', 403);
+    }
+
+    return successResponse(
+      res,
+      {
+        bookingId: booking.bookingId,
+        whatsapp: booking.whatsapp || {
+          status: 'PENDING',
+          messageId: null,
+          sentAt: null,
+          attempts: 0,
+          lastError: null,
+        },
+        phone: booking.phone || '',
+        bookingStatus: booking.bookingStatus,
+        paymentStatus: booking.paymentStatus,
+      },
+      'WhatsApp status retrieved'
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateBookingContact = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { phone, whatsappConsent } = req.body;
+
+    let query = { _id: id };
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      query = { bookingId: id };
+    }
+
+    const booking = await Booking.findOne(query);
+    if (!booking) {
+      return errorResponse(res, 'Booking not found', 'NOT_FOUND', 404);
+    }
+
+    if (req.user.role !== 'admin' && booking.user.toString() !== req.user._id.toString()) {
+      return errorResponse(res, 'Unauthorized access to booking', 'FORBIDDEN', 403);
+    }
+
+    if (phone !== undefined) {
+      booking.phone = String(phone).trim();
+    }
+    if (whatsappConsent !== undefined) {
+      booking.whatsappConsent = Boolean(whatsappConsent);
+    }
+    await booking.save();
+
+    return successResponse(res, booking, 'Booking contact details updated');
   } catch (err) {
     next(err);
   }

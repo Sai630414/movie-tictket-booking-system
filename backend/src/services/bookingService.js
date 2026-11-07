@@ -6,6 +6,7 @@ import { generateQRCode } from '../utils/qrGenerator.js';
 import { sendTicketDelivery } from './deliveryService.js';
 import crypto from 'crypto';
 import { sendBookingConfirmation, sendCancellationEmail } from './email/brevoEmailService.js';
+import { queueWhatsAppNotification } from './whatsappNotificationService.js';
 
 const HOLD_DURATION_MINUTES = 10;
 
@@ -261,6 +262,9 @@ export const confirmMovieBooking = async (bookingId, razorpayOrderId, razorpayPa
   }
 
   await sendBookingConfirmationSafely(booking._id);
+
+  // Trigger OpenWA WhatsApp automation
+  queueWhatsAppNotification(booking._id);
 
   // Asynchronous Ticket Delivery via Email and WhatsApp/SMS
   sendTicketDelivery(booking, { channels: ['email', 'whatsapp'] }).catch((err) => {

@@ -4,6 +4,7 @@ import { Payment } from '../models/Payment.js';
 import { Booking } from '../models/Booking.js';
 import { confirmMovieBooking } from './bookingService.js';
 import { sendRefundEmail } from './email/brevoEmailService.js';
+import { queueWhatsAppNotification } from './whatsappNotificationService.js';
 
 const razorpayRequest = async (method, path, body) => {
   if (!isRazorpayConfigured) {
@@ -131,6 +132,7 @@ export const processWebhookEvent = async (body, signature, rawBody) => {
       const paymentSignature = createPaymentSignature(orderId, paymentId);
       if (!paymentSignature) throw new Error('Payment signing key is not configured');
       await confirmMovieBooking(paymentRecord.bookingId, orderId, paymentId, paymentSignature);
+      queueWhatsAppNotification(paymentRecord.bookingId);
       paymentRecord.status = 'CAPTURED';
       paymentRecord.razorpayPaymentId = paymentId;
       paymentRecord.webhookEvents.push({ eventType: event, payload, receivedAt: new Date() });

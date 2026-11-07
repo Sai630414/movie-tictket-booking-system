@@ -19,7 +19,7 @@ const startServer = async () => {
       console.warn('⚠️ [Database Notice]: Running in development. Please configure MONGODB_URI in backend/.env for database operations.');
     }
 
-    app.listen(PORT, () => {
+    app.listen(PORT,"0.0.0.0", () => {
       console.log(`==================================================`);
       console.log(`🎬 Movie & Event Ticket Booking System API running`);
       console.log(`🌐 URL: http://localhost:${PORT}`);

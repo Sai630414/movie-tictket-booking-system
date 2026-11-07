@@ -1,6 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Calendar, Clock, QrCode, CheckCircle, XCircle, Mail, Download, ArrowLeft, Printer } from 'lucide-react';
+import {
+  MapPin,
+  Calendar,
+  Clock,
+  QrCode,
+  CheckCircle,
+  XCircle,
+  Mail,
+  Download,
+  ArrowLeft,
+  Printer,
+  MessageCircle,
+} from 'lucide-react';
 import api from '../services/api.js';
 import LoadingSpinner from '../components/LoadingSpinner.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -21,18 +33,34 @@ export default function BookingDetailPage() {
     setDeliveryFeedback('');
     setDeliveryFailed(false);
     try {
-      const res = await api.post(`/bookings/${booking._id}/send-ticket`, { channels: [channel] });
-      if (res.data?.success) {
-        const info = res.data.data?.[channel];
-        if (!info?.success) {
-          setDeliveryFailed(true);
-          setDeliveryFeedback(info?.error || 'Ticket email could not be sent. Please try again.');
+      if (channel === 'whatsapp') {
+        const res = await api.post(`/whatsapp/retry/${booking._id}`);
+        if (res.data?.success) {
+          setDeliveryFeedback('Ticket sent to your WhatsApp number!');
+          setBooking((prev) => ({
+            ...prev,
+            whatsapp: { ...(prev?.whatsapp || {}), status: 'SENT' },
+          }));
         } else {
-          setDeliveryFeedback(info.recipient ? `Ticket emailed to ${info.recipient}.` : 'Ticket email sent successfully.');
+          setDeliveryFailed(true);
+          setDeliveryFeedback(res.data?.message || 'Ticket WhatsApp delivery could not be sent.');
         }
       } else {
-        setDeliveryFailed(true);
-        setDeliveryFeedback(res.data?.message || 'Ticket email could not be sent.');
+        const res = await api.post(`/bookings/${booking._id}/send-ticket`, { channels: [channel] });
+        if (res.data?.success) {
+          const info = res.data.data?.[channel];
+          if (!info?.success) {
+            setDeliveryFailed(true);
+            setDeliveryFeedback(info?.error || 'Ticket email could not be sent. Please try again.');
+          } else {
+            setDeliveryFeedback(
+              info.recipient ? `Ticket emailed to ${info.recipient}.` : 'Ticket email sent successfully.'
+            );
+          }
+        } else {
+          setDeliveryFailed(true);
+          setDeliveryFeedback(res.data?.message || 'Ticket email could not be sent.');
+        }
       }
     } catch (err) {
       setDeliveryFailed(true);
@@ -62,49 +90,83 @@ export default function BookingDetailPage() {
   }, [ticketId, user, authLoading]);
 
   if (authLoading || loading) return <LoadingSpinner message="Loading ticket..." />;
-  if (!user) return (
-    <div style={{ textAlign: 'center', padding: '100px 20px', color: 'var(--text-secondary)' }}>
-      <h2 style={{ color: '#fff' }}>Sign in to view this ticket</h2>
-      <p style={{ marginTop: '8px' }}>Tickets are private to the account that made the booking.</p>
-      <Link to="/login" className="btn-primary" style={{ display: 'inline-flex', marginTop: '20px' }}>Sign In</Link>
-    </div>
-  );
-  if (!booking) return (
-    <div style={{ textAlign: 'center', padding: '100px 20px', color: 'var(--text-secondary)' }}>
-      <h2>Ticket not found</h2>
-      <Link to="/bookings" className="btn-primary" style={{ display: 'inline-flex', marginTop: '20px' }}>My Bookings</Link>
-    </div>
-  );
+  if (!user)
+    return (
+      <div style={{ textAlign: 'center', padding: '100px 20px', color: 'var(--text-secondary)' }}>
+        <h2 style={{ color: '#fff' }}>Sign in to view this ticket</h2>
+        <p style={{ marginTop: '8px' }}>Tickets are private to the account that made the booking.</p>
+        <Link to="/login" className="btn-primary" style={{ display: 'inline-flex', marginTop: '20px' }}>
+          Sign In
+        </Link>
+      </div>
+    );
+  if (!booking)
+    return (
+      <div style={{ textAlign: 'center', padding: '100px 20px', color: 'var(--text-secondary)' }}>
+        <h2>Ticket not found</h2>
+        <Link to="/bookings" className="btn-primary" style={{ display: 'inline-flex', marginTop: '20px' }}>
+          My Bookings
+        </Link>
+      </div>
+    );
 
   const isConfirmed = booking.bookingStatus === 'CONFIRMED';
 
   return (
     <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', padding: '40px 0' }}>
       <div className="container" style={{ maxWidth: '600px' }}>
-        <Link to="/bookings" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '24px' }}>
+        <Link
+          to="/bookings"
+          style={{
+            color: 'var(--text-secondary)',
+            fontSize: '0.9rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginBottom: '24px',
+          }}
+        >
           <ArrowLeft size={16} /> Back to My Bookings
         </Link>
 
         {/* Ticket Card */}
-        <div style={{
-          background: 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)',
-          border: `1px solid ${isConfirmed ? 'rgba(34, 197, 94, 0.3)' : 'var(--border-color)'}`,
-          borderRadius: '20px', overflow: 'hidden',
-          boxShadow: `0 20px 60px rgba(0,0,0,0.6)${isConfirmed ? ', 0 0 30px rgba(34, 197, 94, 0.1)' : ''}`
-        }}>
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)',
+            border: `1px solid ${isConfirmed ? 'rgba(34, 197, 94, 0.3)' : 'var(--border-color)'}`,
+            borderRadius: '20px',
+            overflow: 'hidden',
+            boxShadow: `0 20px 60px rgba(0,0,0,0.6)${isConfirmed ? ', 0 0 30px rgba(34, 197, 94, 0.1)' : ''}`,
+          }}
+        >
           {/* Header */}
-          <div style={{
-            background: isConfirmed ? 'linear-gradient(135deg, #166534, #15803d)' : 'linear-gradient(135deg, #7f1d1d, #991b1b)',
-            padding: '20px 24px',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-          }}>
+          <div
+            style={{
+              background: isConfirmed
+                ? 'linear-gradient(135deg, #166534, #15803d)'
+                : 'linear-gradient(135deg, #7f1d1d, #991b1b)',
+              padding: '20px 24px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             <div>
-              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>CineVerse Ticket</div>
-              <div style={{ color: '#fff', fontWeight: '800', fontSize: '1.1rem', marginTop: '4px' }}>#{booking.bookingId}</div>
+              <div
+                style={{
+                  color: 'rgba(255,255,255,0.75)',
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                }}
+              >
+                CineVerse Ticket
+              </div>
+              <div style={{ color: '#fff', fontWeight: '800', fontSize: '1.1rem', marginTop: '4px' }}>
+                #{booking.bookingId}
+              </div>
             </div>
-            {isConfirmed
-              ? <CheckCircle size={32} color="#86efac" />
-              : <XCircle size={32} color="#fca5a5" />}
+            {isConfirmed ? <CheckCircle size={32} color="#86efac" /> : <XCircle size={32} color="#fca5a5" />}
           </div>
 
           <div style={{ padding: '24px' }}>
@@ -112,49 +174,155 @@ export default function BookingDetailPage() {
               {booking.movie?.title || booking.event?.name}
             </h2>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '16px',
+                marginBottom: '24px',
+              }}
+            >
               {booking.venue && (
                 <div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Venue</div>
-                  <div style={{ color: '#fff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}><MapPin size={14} /> {booking.venue?.name}</div>
+                  <div
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '0.72rem',
+                      textTransform: 'uppercase',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    Venue
+                  </div>
+                  <div style={{ color: '#fff', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <MapPin size={14} /> {booking.venue?.name}
+                  </div>
                 </div>
               )}
               {(booking.show?.showDate || booking.event?.date) && (
                 <div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Date</div>
+                  <div
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '0.72rem',
+                      textTransform: 'uppercase',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    Date
+                  </div>
                   <div style={{ color: '#fff', fontSize: '0.9rem' }}>
-                    <Calendar size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} /> {new Date(booking.show?.showDate || booking.event?.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
+                    <Calendar size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />{' '}
+                    {new Date(booking.show?.showDate || booking.event?.date).toLocaleDateString('en-IN', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
                   </div>
                 </div>
               )}
               {(booking.show?.startTime || booking.event?.startTime) && (
                 <div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Time</div>
-                  <div style={{ color: '#fff', fontSize: '0.9rem' }}><Clock size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} /> {booking.show?.startTime || booking.event?.startTime}</div>
+                  <div
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '0.72rem',
+                      textTransform: 'uppercase',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    Time
+                  </div>
+                  <div style={{ color: '#fff', fontSize: '0.9rem' }}>
+                    <Clock size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />{' '}
+                    {booking.show?.startTime || booking.event?.startTime}
+                  </div>
                 </div>
               )}
               <div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Amount Paid</div>
-                <div style={{ color: 'var(--accent-gold)', fontWeight: '800', fontSize: '1.1rem' }}>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(booking.totalAmount || 0)}</div>
+                <div
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '0.72rem',
+                    textTransform: 'uppercase',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Amount Paid
+                </div>
+                <div style={{ color: 'var(--accent-gold)', fontWeight: '800', fontSize: '1.1rem' }}>
+                  {new Intl.NumberFormat('en-IN', {
+                    style: 'currency',
+                    currency: 'INR',
+                    maximumFractionDigits: 0,
+                  }).format(booking.totalAmount || 0)}
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-              <div><div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Ticket status</div><div style={{ color: isConfirmed ? '#86efac' : '#fca5a5', fontWeight: '700' }}>{booking.ticketUsedAt ? 'USED' : booking.bookingStatus}</div></div>
-              <div><div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>Payment status</div><div style={{ color: '#fff', fontWeight: '600' }}>{booking.paymentStatus}</div></div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', marginBottom: '20px' }}>
+              <div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Ticket status
+                </div>
+                <div style={{ color: isConfirmed ? '#86efac' : '#fca5a5', fontWeight: '700' }}>
+                  {booking.ticketUsedAt ? 'USED' : booking.bookingStatus}
+                </div>
+              </div>
+              <div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Payment status
+                </div>
+                <div style={{ color: '#fff', fontWeight: '600' }}>{booking.paymentStatus}</div>
+              </div>
+              <div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '4px' }}>
+                  WhatsApp Status
+                </div>
+                <div
+                  style={{
+                    color:
+                      booking.whatsapp?.status === 'SENT'
+                        ? '#86efac'
+                        : booking.whatsapp?.status === 'FAILED'
+                        ? '#fca5a5'
+                        : '#fde047',
+                    fontWeight: '700',
+                  }}
+                >
+                  {booking.whatsapp?.status || 'PENDING'}
+                </div>
+              </div>
             </div>
 
             {/* Seats */}
             {booking.seats?.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '8px' }}>Seats</div>
+                <div
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '0.72rem',
+                    textTransform: 'uppercase',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Seats
+                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {booking.seats.map(s => (
-                    <span key={s.seatId} style={{
-                      padding: '6px 14px', backgroundColor: 'rgba(229,9,20,0.15)',
-                      border: '1px solid rgba(229,9,20,0.4)', borderRadius: '6px',
-                      color: 'var(--accent-red)', fontWeight: '700', fontSize: '0.9rem'
-                    }}>
+                  {booking.seats.map((s) => (
+                    <span
+                      key={s.seatId}
+                      style={{
+                        padding: '6px 14px',
+                        backgroundColor: 'rgba(229,9,20,0.15)',
+                        border: '1px solid rgba(229,9,20,0.4)',
+                        borderRadius: '6px',
+                        color: 'var(--accent-red)',
+                        fontWeight: '700',
+                        fontSize: '0.9rem',
+                      }}
+                    >
                       {s.seatId} <span style={{ opacity: 0.7, fontSize: '0.75rem' }}>({s.seatType})</span>
                     </span>
                   ))}
@@ -164,45 +332,103 @@ export default function BookingDetailPage() {
 
             {booking.ticketItems?.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '8px' }}>Tickets</div>
-                {booking.ticketItems.map(item => (
-                  <div key={item.categoryName} style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', marginBottom: '6px', fontSize: '0.9rem' }}>
-                    <span>{item.categoryName} × {item.quantity}</span>
-                    <span>{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(item.price * item.quantity)}</span>
+                <div
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '0.72rem',
+                    textTransform: 'uppercase',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Tickets
+                </div>
+                {booking.ticketItems.map((item) => (
+                  <div
+                    key={item.categoryName}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      color: '#fff',
+                      marginBottom: '6px',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    <span>
+                      {item.categoryName} × {item.quantity}
+                    </span>
+                    <span>
+                      {new Intl.NumberFormat('en-IN', {
+                        style: 'currency',
+                        currency: 'INR',
+                        maximumFractionDigits: 0,
+                      }).format(item.price * item.quantity)}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
 
             {/* Separator */}
-            <div style={{ borderTop: '2px dashed rgba(255,255,255,0.1)', margin: '16px -24px', padding: '16px 24px 0' }} />
+            <div
+              style={{
+                borderTop: '2px dashed rgba(255,255,255,0.1)',
+                margin: '16px -24px',
+                padding: '16px 24px 0',
+              }}
+            />
 
             {/* QR Code */}
             <div style={{ textAlign: 'center' }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <p
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.75rem',
+                  marginBottom: '12px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
                 Show this QR code at the venue entrance
               </p>
               {booking.qrCode && isConfirmed && booking.paymentStatus === 'PAID' ? (
                 <img
                   src={booking.qrCode}
                   alt="Booking QR Code"
-                  style={{ width: '180px', height: '180px', border: '8px solid #fff', borderRadius: '12px', backgroundColor: '#fff' }}
+                  style={{
+                    width: '180px',
+                    height: '180px',
+                    border: '8px solid #fff',
+                    borderRadius: '12px',
+                    backgroundColor: '#fff',
+                  }}
                 />
               ) : booking.bookingStatus === 'CANCELLED' || booking.paymentStatus === 'REFUNDED' ? (
                 <p style={{ color: 'var(--accent-red)', fontSize: '0.88rem' }}>This ticket is no longer valid.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <QrCode size={80} color="var(--text-muted)" />
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>Payment pending — QR code will appear after confirmation</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                    Payment pending — QR code will appear after confirmation
+                  </p>
                 </div>
               )}
               {/* Delivery notification feedback */}
               {deliveryFeedback && (
-                <div style={{
-                  marginTop: '16px', padding: '10px 14px', borderRadius: '8px',
-                  backgroundColor: deliveryFailed ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.15)', border: `1px solid ${deliveryFailed ? 'rgba(239, 68, 68, 0.35)' : 'rgba(34, 197, 94, 0.3)'}`,
-                  color: deliveryFailed ? '#fca5a5' : '#86efac', fontSize: '0.85rem', textAlign: 'center', wordBreak: 'break-all'
-                }}>
+                <div
+                  style={{
+                    marginTop: '16px',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    backgroundColor: deliveryFailed ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.15)',
+                    border: `1px solid ${
+                      deliveryFailed ? 'rgba(239, 68, 68, 0.35)' : 'rgba(34, 197, 94, 0.3)'
+                    }`,
+                    color: deliveryFailed ? '#fca5a5' : '#86efac',
+                    fontSize: '0.85rem',
+                    textAlign: 'center',
+                    wordBreak: 'break-all',
+                  }}
+                >
                   {deliveryFeedback}
                 </div>
               )}
@@ -210,18 +436,52 @@ export default function BookingDetailPage() {
               {/* Delivery Channels */}
               {isConfirmed && (
                 <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
                     Deliver Ticket To
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => handleSendTicket('whatsapp')}
+                      disabled={sendingDelivery !== null}
+                      className="btn-outline"
+                      style={{
+                        flex: 1,
+                        minWidth: '130px',
+                        padding: '8px 12px',
+                        fontSize: '0.82rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        borderColor: 'rgba(34, 197, 94, 0.4)',
+                        color: '#86efac',
+                        cursor: sendingDelivery ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      <MessageCircle size={14} color="#22c55e" />
+                      {sendingDelivery === 'whatsapp' ? 'Sending WhatsApp...' : 'Send to WhatsApp'}
+                    </button>
                     <button
                       onClick={() => handleSendTicket('email')}
                       disabled={sendingDelivery !== null}
                       className="btn-outline"
                       style={{
-                        flex: 1, minWidth: '130px', padding: '8px 12px', fontSize: '0.82rem',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                        cursor: sendingDelivery ? 'not-allowed' : 'pointer'
+                        flex: 1,
+                        minWidth: '130px',
+                        padding: '8px 12px',
+                        fontSize: '0.82rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        cursor: sendingDelivery ? 'not-allowed' : 'pointer',
                       }}
                     >
                       <Mail size={14} color="#60a5fa" />
@@ -232,19 +492,42 @@ export default function BookingDetailPage() {
               )}
 
               {/* Actions */}
-              <div data-ticket-download-exclude="true" style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}>
+              <div
+                data-ticket-download-exclude="true"
+                style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}
+              >
                 <button
                   onClick={() => window.print()}
                   className="btn-outline"
-                  style={{ flex: 1, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.88rem' }}
+                  style={{
+                    flex: 1,
+                    padding: '10px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontSize: '0.88rem',
+                  }}
                 >
                   <Printer size={16} /> Print Ticket
                 </button>
                 <button
                   type="button"
-                  onClick={() => downloadBookingTicketAsPng(booking, `CineVerse-${booking.bookingId || 'ticket'}.png`).catch(error => window.alert(error.message))}
+                  onClick={() =>
+                    downloadBookingTicketAsPng(booking, `CineVerse-${booking.bookingId || 'ticket'}.png`).catch(
+                      (error) => window.alert(error.message)
+                    )
+                  }
                   className="btn-outline"
-                  style={{ flex: 1, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.88rem' }}
+                  style={{
+                    flex: 1,
+                    padding: '10px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontSize: '0.88rem',
+                  }}
                 >
                   <Download size={16} /> Download PNG
                 </button>
@@ -252,9 +535,16 @@ export default function BookingDetailPage() {
                   <Link
                     to={`/bookings/${booking._id}/cancel`}
                     style={{
-                      flex: 1, padding: '10px 16px', borderRadius: '8px',
-                      backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-                      color: '#ef4444', fontSize: '0.88rem', fontWeight: '600', cursor: 'pointer', textDecoration: 'none'
+                      flex: 1,
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(239,68,68,0.1)',
+                      border: '1px solid rgba(239,68,68,0.3)',
+                      color: '#ef4444',
+                      fontSize: '0.88rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      textDecoration: 'none',
                     }}
                   >
                     Cancel Booking

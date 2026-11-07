@@ -41,9 +41,9 @@ export const renderBookingEmail = (booking, { kind, frontendUrl }) => {
     ? ticketItems.reduce((total, item) => total + Number(item.quantity || 0), 0)
     : seats.length;
   const ticketLabel = isEvent
-    ? ticketItems.map(item => `${item.categoryName} x ${item.quantity}`).join(', ')
+    ? ticketItems.map(item => `${item.categoryName} × ${item.quantity}`).join(', ')
     : seats.map(seat => seat.seatId).join(', ');
-  const kindLabel = kind === 'refund' ? 'Refund completed' : kind === 'cancellation' ? 'Booking cancelled' : 'Booking confirmed';
+  const kindLabel = kind === 'refund' ? 'REFUND PROCESSED' : kind === 'cancellation' ? 'BOOKING CANCELLED' : 'BOOKING CONFIRMED';
   const accent = kind === 'refund' ? '#087f8c' : kind === 'cancellation' ? '#c62835' : '#16834a';
   const accentBackground = kind === 'refund' ? '#e9f6f8' : kind === 'cancellation' ? '#fdecef' : '#eaf6ee';
   const subtitle = kind === 'refund'
@@ -51,7 +51,7 @@ export const renderBookingEmail = (booking, { kind, frontendUrl }) => {
     : kind === 'cancellation'
       ? 'Your booking has been cancelled.'
       : `Your ${isEvent ? 'event' : 'movie'} plans are all set.`;
-  const viewLabel = kind === 'confirmation' ? 'View your ticket' : 'View booking details';
+  const viewLabel = 'View Ticket';
   const viewUrl = `${String(frontendUrl || '').replace(/\/$/, '')}/ticket/${encodeURIComponent(booking._id)}`;
   const imageBlock = poster ? `
     <tr><td style="padding:0">
@@ -65,6 +65,7 @@ export const renderBookingEmail = (booking, { kind, frontendUrl }) => {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7f5;border:1px solid #dce9e0;border-radius:10px">
         <tr><td style="padding:15px 16px;color:#37443b;font-size:13px;line-height:1.6">
           <strong style="color:#176b3c">Your entry QR is attached</strong><br>
+          <img src="cid:cineverse-ticket-qr" alt="QR Code" style="display:none" />
           Keep the PNG ticket attachment ready and show its QR code at the entrance. You can also open your digital ticket using the button below.
         </td></tr>
       </table>

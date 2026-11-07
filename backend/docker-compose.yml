@@ -1,0 +1,23 @@
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: cineverse-backend:latest
+    container_name: my-backend
+
+    ports:
+      - "5000:5000"
+
+    env_file:
+      - .env
+
+    environment:
+      MONGODB_URI: mongodb://host.docker.internal:27017/cineverse
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    restart: unless-stopped

@@ -13,6 +13,7 @@ import recommendationRoutes from './recommendationRoutes.js';
 import notificationRoutes from './notificationRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import ticketRoutes from './ticketRoutes.js';
+import whatsappRoutes from './whatsappRoutes.js';
 import { globalSearch } from '../controllers/searchController.js';
 
 const router = express.Router();
@@ -33,5 +34,6 @@ router.use('/recommendations', recommendationRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/admin', adminRoutes);
 router.use('/tickets', ticketRoutes);
+router.use('/whatsapp', whatsappRoutes);
 
 export default router;
